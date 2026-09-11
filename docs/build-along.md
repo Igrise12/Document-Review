@@ -162,3 +162,26 @@ uv run --locked --no-sync ruff check app ../playground/check_document_types.py
 The observable result is `PASS: 12 invoices, 1 receipt; stage 2 contracts valid`, followed by the corpus classification. Ruff reports no errors. No provider request or dependency installation is required.
 
 Checkpoint: provider adapters, deterministic validation, persistence, and routes can now depend on one provider-independent Pydantic contract.
+
+## Stage 3 checkpoint — configuration and local persistence
+
+Stage 3 adds the local runtime configuration boundary, original-upload storage, and the first SQLite repository. Configuration is read through `backend/app/config.py`; the default data directory is outside the repository at `~/.invoice-review`. Upload bytes are validated against the fixed PDF/PNG/JPEG and 4 MB contract, stored unchanged under an internal UUID key, and never addressed by the client filename.
+
+The repository creates `uploaded_documents` and `reviews` for a fresh checkout. Review payloads that will evolve with later provider stages are stored as JSON, while state, document type, duplicate key, timestamps, and file metadata remain directly queryable. Deletion is a hard delete: it removes duplicate participation and returns the exact storage key for file cleanup. Provider failures will retain the original file for retry when orchestration is added.
+
+Run the stage 3 smoke check and static verification:
+
+```bash
+cd backend
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_persistence.py
+uv run --locked --no-sync ruff check app ../playground/check_persistence.py
+
+cd ../frontend
+pnpm exec tsc -b --pretty false
+pnpm lint
+pnpm build
+```
+
+The observable result is `PASS: local configuration, file storage, and SQLite persistence`, followed by clean Ruff, TypeScript, ESLint, and production-build checks. The smoke check uses a temporary directory, so it leaves no sample upload or SQLite database in the repository. No PaddleOCR, Qwen, or external provider request occurs.
+
+Checkpoint: settings, safe original-file storage, and repository round-trips are ready for provider orchestration and HTTP routes.

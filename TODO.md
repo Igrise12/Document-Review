@@ -86,32 +86,32 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ### Settings
 
-- [ ] Add `backend/app/config.py` as the single backend settings entry point.
-- [ ] Configure provider runtime (`ollama` or `vllm`), base URL, model name, device/engine, timeout, and bounded structured-output retry settings.
-- [ ] Keep local API keys optional where the runtime does not require one.
-- [ ] Add safe defaults and fail clearly when a provider setting required for processing is absent.
-- [ ] Add `frontend/src/lib/env.ts` as the single frontend environment entry point for `VITE_API_BASE_URL`.
-- [ ] Ensure secrets and real provider credentials are never committed.
+- [x] Add `backend/app/config.py` as the single backend settings entry point.
+- [x] Configure provider runtime (`ollama` or `vllm`), base URL, model name, device/engine, timeout, and bounded structured-output retry settings.
+- [x] Keep local API keys optional where the runtime does not require one.
+- [x] Add safe defaults and fail clearly when a provider setting required for processing is absent.
+- [x] Add `frontend/src/lib/env.ts` as the single frontend environment entry point for `VITE_API_BASE_URL`.
+- [x] Ensure secrets and real provider credentials are never committed.
 
 ### File storage
 
-- [ ] Create a small local file-storage component for original uploads.
+- [x] Create a small local file-storage component for original uploads.
 - [ ] Enforce one file per upload, PDF/PNG/JPEG media types, and the 4 MB limit at the HTTP boundary and in the service.
-- [ ] Validate content sufficiently to reject a renamed or unsupported file.
-- [ ] Generate safe internal filenames/IDs instead of trusting the client filename for paths.
-- [ ] Preserve the original upload unchanged for preview and independent VLM review.
-- [ ] Keep storage location configurable and outside the repository by default.
-- [ ] Define cleanup behavior for failed processing and explicit review deletion without deleting an unrelated file.
+- [x] Validate content sufficiently to reject a renamed or unsupported file.
+- [x] Generate safe internal filenames/IDs instead of trusting the client filename for paths.
+- [x] Preserve the original upload unchanged for preview and independent VLM review.
+- [x] Keep storage location configurable and outside the repository by default.
+- [x] Define cleanup behavior for failed processing and explicit review deletion without deleting an unrelated file.
 
 ### SQLite repository
 
-- [ ] Add the minimum SQLAlchemy 2 models/tables needed for uploaded documents and reviews.
-- [ ] Persist normalized fields, raw/merged evidence needed by the UI, conflicts, policy issues, GL suggestion, GL selection, review state, action metadata, and provider metadata.
-- [ ] Persist the normalized duplicate key used for invoice duplicate detection.
-- [ ] Keep all SQLite reads/writes in `repository.py`; do not access the database from routes or provider adapters.
-- [ ] Initialize the local database safely for a fresh checkout.
-- [ ] Support list, detail, action update, and explicit deletion operations.
-- [ ] Ensure a deleted local review no longer participates in duplicate detection and can be uploaded again.
+- [x] Add the minimum SQLAlchemy 2 models/tables needed for uploaded documents and reviews.
+- [x] Persist normalized fields, raw/merged evidence needed by the UI, conflicts, policy issues, GL suggestion, GL selection, review state, action metadata, and provider metadata.
+- [x] Persist the normalized duplicate key used for invoice duplicate detection.
+- [x] Keep all SQLite reads/writes in `repository.py`; do not access the database from routes or provider adapters.
+- [x] Initialize the local database safely for a fresh checkout.
+- [x] Support list, detail, action update, and explicit deletion operations.
+- [x] Ensure a deleted local review no longer participates in duplicate detection and can be uploaded again.
 
 ## 4. Implement the primary PaddleOCR adapter
 
