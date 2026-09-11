@@ -239,3 +239,10 @@ class PrimaryExtractionResult(BaseModel):
     document: NormalizedFinancialDocument
     evidence: dict[str, FieldEvidence[object]]
     provider_run: ProviderRunMetadata
+
+
+class MergedExtractionResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    document: NormalizedFinancialDocument
+    evidence: dict[str, FieldEvidence[object]]

@@ -52,7 +52,7 @@ function App() {
       .then(() => {
         if (controller.signal.aborted) return
         setHealthState('healthy')
-        setHealthMessage('Backend is healthy and ready for the next API stage.')
+        setHealthMessage('Backend is healthy; processing remains outside this checkpoint.')
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return
@@ -69,7 +69,7 @@ function App() {
       .then(() => {
         if (controller.signal.aborted) return
         setHealthState('healthy')
-        setHealthMessage('Backend is healthy and ready for the next API stage.')
+        setHealthMessage('Backend is healthy; processing remains outside this checkpoint.')
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return
@@ -125,16 +125,17 @@ function App() {
           <span className="brand-mark" aria-hidden="true">IR</span>
           <span>Invoice Review</span>
         </a>
-        <span className="environment-tag">Developer harness</span>
+        <span className="environment-tag">Stage 6 harness</span>
       </header>
 
       <main className="workspace">
         <section className="intro-row" aria-labelledby="page-title">
           <div>
-            <p className="section-label">Stage 4</p>
-            <h1 id="page-title">Primary Parser Checkpoint</h1>
+            <p className="section-label">Stage 6</p>
+            <h1 id="page-title">Normalize &amp; merge checkpoint</h1>
             <p className="intro-copy">
-              Confirm the local review surface before upload and processing APIs arrive.
+              Keep the document desk ready while the backend reconciles primary and independent
+              review evidence.
             </p>
           </div>
           <div className={`health-badge health-${healthState}`}>
@@ -146,19 +147,27 @@ function App() {
         <section className="progress-strip" aria-label="Pipeline progress">
           <div className="stage-item stage-complete">
             <span className="stage-number">01</span>
-            <span><strong>Contracts</strong><small>Complete</small></span>
+            <span><strong>Starter</strong><small>Complete</small></span>
           </div>
           <div className="stage-item stage-complete">
             <span className="stage-number">02</span>
+            <span><strong>Contracts</strong><small>Complete</small></span>
+          </div>
+          <div className="stage-item stage-complete">
+            <span className="stage-number">03</span>
             <span><strong>Persistence</strong><small>Complete</small></span>
           </div>
-          <div className="stage-item stage-current">
-            <span className="stage-number">03</span>
-            <span><strong>Primary parser</strong><small>Current checkpoint</small></span>
-          </div>
-          <div className="stage-item stage-next">
+          <div className="stage-item stage-complete">
             <span className="stage-number">04</span>
-            <span><strong>VLM review</strong><small>Next</small></span>
+            <span><strong>PaddleOCR</strong><small>Complete</small></span>
+          </div>
+          <div className="stage-item stage-complete">
+            <span className="stage-number">05</span>
+            <span><strong>Qwen VLM</strong><small>Complete</small></span>
+          </div>
+          <div className="stage-item stage-current">
+            <span className="stage-number">06</span>
+            <span><strong>Normalize &amp; merge</strong><small>Current checkpoint</small></span>
           </div>
         </section>
 
@@ -220,9 +229,10 @@ function App() {
 
             <div className="processing-note">
               <p className="panel-label">API boundary</p>
-              <h2>Processing is not available yet</h2>
+              <h2>Processing is reserved for the API stage</h2>
               <p>
-                This checkpoint verifies health, file validation, and local preview. No extraction,
+                This checkpoint verifies health, file validation, and local preview. The
+                provider-independent merge runs in the backend self-check; no extraction,
                 confidence, or approval result is simulated here.
               </p>
             </div>

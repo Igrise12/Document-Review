@@ -167,17 +167,17 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ## 6. Normalize, merge, and preserve provenance
 
-- [ ] Add a deterministic normalization step for provider-independent dates, decimals, currency, VAT IDs, whitespace, and empty values.
-- [ ] Normalize decimal separators and common multilingual labels without changing the original evidence.
-- [ ] Merge the primary and VLM results deterministically.
-- [ ] Keep a primary value whenever it exists, even when the VLM proposes a different value.
-- [ ] Use a VLM value only to fill a missing primary field.
-- [ ] Record fallback provenance for every field filled by the VLM.
-- [ ] Record both values and a visible conflict for every primary/VLM disagreement.
-- [ ] Do not let the VLM replace primary values, validate VAT, calculate approval, or invent missing business facts.
-- [ ] Keep the merge logic independent from HTTP, SQLite, and provider SDK types.
-- [ ] Add one small runnable assert-based self-check for merge precedence, missing-field fallback, and conflict recording.
-- [ ] Verify multi-page invoices are merged into one normalized review without changing the original page count.
+- [x] Add a deterministic normalization step for provider-independent dates, decimals, currency, VAT IDs, whitespace, and empty values.
+- [x] Normalize decimal separators and common multilingual labels without changing the original evidence.
+- [x] Merge the primary and VLM results deterministically.
+- [x] Keep a primary value whenever it exists, even when the VLM proposes a different value.
+- [x] Use a VLM value only to fill a missing primary field.
+- [x] Record fallback provenance for every field filled by the VLM.
+- [x] Record both values and a visible conflict for every primary/VLM disagreement.
+- [x] Do not let the VLM replace primary values, validate VAT, calculate approval, or invent missing business facts.
+- [x] Keep the merge logic independent from HTTP, SQLite, and provider SDK types.
+- [x] Add one small runnable assert-based self-check for merge precedence, missing-field fallback, and conflict recording.
+- [x] Verify multi-page invoices are merged into one normalized review without changing the original page count.
 
 ## 7. Implement deterministic VAT and finance validation
 

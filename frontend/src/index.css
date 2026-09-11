@@ -167,7 +167,7 @@ h2 {
 
 .progress-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   margin-bottom: 1.15rem;
   border-top: 1px solid #b9c8c2;
   border-bottom: 1px solid #b9c8c2;
@@ -177,6 +177,7 @@ h2 {
   display: flex;
   align-items: center;
   gap: 0.9rem;
+  min-width: 0;
   min-height: 82px;
   padding: 1rem 1.1rem;
   border-right: 1px solid #b9c8c2;
@@ -201,6 +202,7 @@ h2 {
 .stage-item strong {
   margin-bottom: 0.25rem;
   font-size: 0.84rem;
+  overflow-wrap: anywhere;
 }
 
 .stage-item small {
@@ -516,11 +518,11 @@ h2 {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .stage-item:nth-child(2) {
+  .stage-item:nth-child(2n) {
     border-right: 0;
   }
 
-  .stage-item:nth-child(-n + 2) {
+  .stage-item:nth-child(-n + 4) {
     border-bottom: 1px solid #b9c8c2;
   }
 
@@ -562,8 +564,12 @@ h2 {
   }
 
   .stage-item,
-  .stage-item:nth-child(2) {
+  .stage-item:nth-child(2n) {
     border-right: 0;
+    border-bottom: 1px solid #b9c8c2;
+  }
+
+  .stage-item:nth-child(-n + 5) {
     border-bottom: 1px solid #b9c8c2;
   }
 

@@ -248,6 +248,28 @@ PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
   uv run --locked --no-sync python ../playground/check_qwen.py --live
 ```
 
-The observable result is `PASS: Qwen live checks via ollama (qwen2.5vl:3b)`. The endpoint exposed `qwen2.5vl:3b` rather than the default `qwen2.5vl:7b`, so the model and port were supplied as command-local overrides; the repository defaults remain unchanged. The provider also normalizes harmless model formatting such as currency-prefixed decimal strings before strict domain validation. The full service orchestration, deterministic merge, policy validation, API routes, persistence wiring, and UI remain later stages.
+The observable result is `PASS: Qwen live checks via ollama (qwen2.5vl:3b)`. The endpoint exposed `qwen2.5vl:3b` rather than the default `qwen2.5vl:7b`, so the model and port were supplied as command-local overrides; the repository defaults remain unchanged. The provider also normalizes harmless model formatting such as currency-prefixed decimal strings before strict domain validation. The full service orchestration, deterministic policy validation, API routes, persistence wiring, and UI remain later stages.
 
 Checkpoint: the Qwen provider boundary and all four structured adapter contracts pass both offline verification and a live local-model smoke check.
+
+## Stage 6 checkpoint — deterministic normalization and merge
+
+Completed on 2026-09-11. `backend/app/document_review/reconciliation.py` now canonicalizes provider-independent dates, exact decimal values, currencies, VAT IDs, whitespace, and known empty markers. It returns new validated document models, so normalization does not mutate provider results or evidence context.
+
+`merge_extractions` accepts `PrimaryExtractionResult` and `VLMExtractionResult` and returns `MergedExtractionResult`. Primary values remain authoritative. A VLM value fills only a missing primary field; equal values are marked `MERGED`; disagreements are marked `CONFLICT` while preserving both candidates. The original primary evidence context and source page count remain intact. The module contains no HTTP, SQLite, or provider SDK code and does not perform VAT or approval policy decisions.
+
+Run the reconciliation smoke check and backend lint:
+
+```bash
+cd backend
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/check_reconciliation.py
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync ruff check app ../playground/check_reconciliation.py
+```
+
+The observable result is `PASS: normalization, merge precedence, provenance, conflict, and two-page checks`. The check uses fictional corpus metadata and typed fixtures; it does not call PaddleOCR, Qwen, or an HTTP endpoint.
+
+The React surface is now named “Normalize & merge checkpoint”. It keeps the health request, one-file validation, and local PDF/image preview while showing the six checkpoints with Stage 6 active. It intentionally does not simulate extracted fields, confidence, conflicts, approval, or processing because the upload/process API is still a later stage.
+
+Checkpoint: deterministic merge behavior and multi-page provenance are verified independently, while the React harness accurately represents the current backend boundary.

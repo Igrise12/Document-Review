@@ -17,7 +17,7 @@ The stack is locked unless Dave explicitly approves a change.
 
 ## Layout
 
-The current checkpoint contains the initial configuration, persistence, health route, and primary parser implementation. Continue adding workflow code using these boundaries:
+The current checkpoint contains configuration, persistence, the health route, the primary parser, local Qwen adapters, and deterministic extraction reconciliation. Continue adding workflow code using these boundaries:
 
 ```text
 backend/
@@ -26,7 +26,7 @@ backend/
 │   ├── config.py            # Provider settings and fixed application config
 │   ├── invoices/            # HTTP, orchestration, persistence, and policy by module
 │   ├── accounting/          # Fixed GL catalog and validated selections
-│   ├── document_review/     # Provider-independent review and reconciliation
+│   ├── document_review/     # Provider-independent review, normalization, and reconciliation
 │   ├── correction_email/    # Eligibility and provider-independent draft models
 │   └── providers/           # PaddleOCR and local VLM adapters; raw SDK/runtime types stop here
 ├── scripts/                 # Explicit provider checks and corpus evaluations
@@ -43,6 +43,7 @@ Do not create empty architectural layers before the tutorial reaches them.
 - Repositories own SQLAlchemy and SQLite access.
 - Provider adapters are the only modules allowed to expose third-party SDK and runtime types.
 - `backend/app/providers/paddleocr.py` is the only module allowed to import PaddleOCR, inspect its result payloads, or raise package-specific provider errors. Only `PrimaryExtractionResult` and other provider-independent Pydantic models may cross into the domain.
+- `backend/app/document_review/reconciliation.py` owns typed normalization and primary/VLM merging. Keep it pure and provider-independent: primary values remain authoritative, VLM values fill only missing fields, and disagreements preserve both candidates as conflicts.
 - Deterministic validation and reconciliation remain separate from AI extraction or generation.
 - Keep public functions typed and modules focused. Prefer dataclasses, enums, `pathlib`, and other standard-library capabilities over helper packages.
 - Validate files, HTTP input, provider output, and database writes at their boundaries. Do not repeatedly validate trusted internal calls.
@@ -75,6 +76,8 @@ Verify the current backend checkpoint with:
 ```bash
 uv sync --locked
 PYTHONPATH=. uv run --locked --no-sync python ../playground/check_paddleocr.py
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_qwen.py
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_reconciliation.py
 uv run --locked --no-sync ruff check app ../playground
 ```
 
