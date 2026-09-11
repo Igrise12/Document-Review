@@ -164,8 +164,11 @@ def _service(
     service = InvoiceReviewService(
         repository=repository,
         storage=storage,
-        primary_parser=FakePrimaryParser(primary_document, calls),  # type: ignore[arg-type]
-        vlm_provider=fake_vlm,  # type: ignore[arg-type]
+        primary_parser_factory=lambda: FakePrimaryParser(  # type: ignore[return-value]
+            primary_document,
+            calls,
+        ),
+        vlm_provider_factory=lambda: fake_vlm,  # type: ignore[return-value]
     )
     return service, repository, settings, fake_vlm
 

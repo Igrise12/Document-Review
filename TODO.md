@@ -96,7 +96,7 @@ This checklist turns the client brief, target architecture, local-provider decis
 ### File storage
 
 - [x] Create a small local file-storage component for original uploads.
-- [ ] Enforce one file per upload, PDF/PNG/JPEG media types, and the 4 MB limit at the HTTP boundary and in the service.
+- [x] Enforce one file per upload, PDF/PNG/JPEG media types, and the 4 MB limit at the HTTP boundary and in the service.
 - [x] Validate content sufficiently to reject a renamed or unsupported file.
 - [x] Generate safe internal filenames/IDs instead of trusting the client filename for paths.
 - [x] Preserve the original upload unchanged for preview and independent VLM review.
@@ -253,20 +253,20 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ## 10. Expose the minimal FastAPI API
 
-- [ ] Keep `GET /health` working.
-- [ ] Add an upload endpoint that validates file count, media type, size, and creates a review/document record.
-- [ ] Add a process endpoint that runs the local pipeline and returns the review state/result.
-- [ ] Add a review-history endpoint with compact status, document type, supplier/merchant, date, total, and blocking-state summary.
-- [ ] Add a review-detail endpoint containing normalized fields, evidence, provenance, conflicts, policy issues, GL suggestion/selection, and original-file metadata.
-- [ ] Add an approval endpoint that rechecks the approval gate server-side before changing state.
-- [ ] Add a rejection endpoint and persist the decision.
-- [ ] Add a correction-request action that records the request without sending email.
-- [ ] Add an on-demand correction-email-draft endpoint.
-- [ ] Add an explicit local deletion endpoint for review history and stored original data.
-- [ ] Add a GL-catalog endpoint or include the catalog in a stable API response.
-- [ ] Use Pydantic request/response models and return consistent validation/provider errors.
-- [ ] Keep routes thin: no provider calls, SQLAlchemy queries, or business-policy branches directly in route handlers.
-- [ ] Confirm the frontend can use the API without CORS or environment surprises in local development.
+- [x] Keep `GET /health` working.
+- [x] Add an upload endpoint that validates file count, media type, size, and creates a review/document record.
+- [x] Add a process endpoint that runs the local pipeline and returns the review state/result.
+- [x] Add a review-history endpoint with compact status, document type, supplier/merchant, date, total, and blocking-state summary.
+- [x] Add a review-detail endpoint containing normalized fields, evidence, provenance, conflicts, policy issues, GL suggestion/selection, and original-file metadata.
+- [x] Add an approval endpoint that rechecks the approval gate server-side before changing state.
+- [x] Add a rejection endpoint and persist the decision.
+- [x] Add a correction-request action that records the request without sending email.
+- [x] Add an on-demand correction-email-draft endpoint.
+- [x] Add an explicit local deletion endpoint for review history and stored original data.
+- [x] Add a GL-catalog endpoint or include the catalog in a stable API response.
+- [x] Use Pydantic request/response models and return consistent validation/provider errors.
+- [x] Keep routes thin: no provider calls, SQLAlchemy queries, or business-policy branches directly in route handlers.
+- [x] Confirm the frontend can use the API without CORS or environment surprises in local development.
 
 ## 11. Build the React review experience
 

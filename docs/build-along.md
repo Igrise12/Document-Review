@@ -374,13 +374,15 @@ document-type reconciliation, independent Qwen review of the original file,
 deterministic merge, offline policy validation, GL suggestion, and SQLite
 persistence.
 
-The service receives provider instances explicitly, so the workflow is
+The service receives provider dependencies explicitly, so the workflow is
 testable without a live model and `/health` remains free of PaddleOCR model
-initialization. Qwen classification must agree with the primary parser before
-the review path continues. A disagreement or any provider failure produces a
-retryable `failed` review. When safe, primary or merged fields, evidence,
-issues, duplicate keys, and provider metadata remain available as partial data;
-partial data can never become an approval-ready review.
+initialization. Stage 10 wraps those dependencies in lazy factories so app
+construction and non-processing routes stay lightweight. Qwen classification
+must agree with the primary parser before the review path continues. A
+disagreement or any provider failure produces a retryable `failed` review. When
+safe, primary or merged fields, evidence, issues, duplicate keys, and provider
+metadata remain available as partial data; partial data can never become an
+approval-ready review.
 
 The repository processing write now accepts nullable page counts and an
 optional failure message, allowing the same persistence path to clear stale
@@ -413,3 +415,70 @@ network endpoint.
 Checkpoint: the local review pipeline has one explicit synchronous orchestration
 boundary and a recoverable persistence contract; FastAPI endpoints and the
 React review experience remain stage 10 and later.
+
+## Stage 10 checkpoint — minimal FastAPI review API
+
+Completed on 2026-09-11. FastAPI now exposes the complete local review boundary:
+single-file upload, synchronous processing, compact history, full detail,
+original-file preview, fixed GL selection, approval, rejection, correction
+request, on-demand correction draft, and explicit deletion. `GET /health` and
+`GET /gl-catalog` remain available. The API is intentionally unversioned and
+local because there is one teaching client and no external integration contract.
+
+`POST /reviews` accepts exactly one multipart `file`, reads no more than the 4 MB
+limit plus one byte, and delegates signature validation and safe storage to the
+existing service/storage boundary. Detail responses expose normalized values,
+evidence, explicit conflicts, deterministic issues, GL suggestion and human
+selection, approval eligibility, provider/action metadata, and safe original
+metadata. Internal storage and duplicate keys never cross the HTTP boundary.
+`GET /reviews/{id}/original` returns the unchanged bytes needed by the next
+React preview slice.
+
+Review actions remain server-controlled. GL selection, approval, rejection, and
+correction request accept only `ready_for_review`; approval reruns the pure gate,
+and correction requires a blocking issue. A correction request records state
+without sending anything. Draft generation calls Qwen only when requested,
+returns copyable text, and is not persisted. Provider factories are lazy and
+cached, so app startup, health, upload, history, detail, and original reads do
+not initialize PaddleOCR or Qwen.
+
+Handled failures use one response shape, `{"error":{"code":"...","message":"..."}}`.
+Missing reviews return 404, invalid transitions return 409, invalid requests,
+uploads, or GL selections return 422, and an on-demand draft provider failure
+returns 502. A processing provider failure remains an HTTP 200 review result
+with state `failed`, because the recoverable failure was persisted successfully.
+Local CORS permits the Vite origins at `localhost:5173` and `127.0.0.1:5173`.
+
+Run the offline API and existing backend checks:
+
+```bash
+cd backend
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  PYTHONPATH=. uv run --locked --no-sync python ../playground/check_persistence.py
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  PYTHONPATH=. uv run --locked --no-sync python ../playground/check_validation.py
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  PYTHONPATH=. uv run --locked --no-sync python ../playground/check_service.py
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  PYTHONPATH=. uv run --locked --no-sync python ../playground/check_api.py
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync ruff check app ../playground
+```
+
+The observable API result is:
+
+```text
+PASS: minimal API upload, processing, review actions, errors, CORS, and deletion
+```
+
+`check_api.py` starts the app on an ephemeral loopback port with a temporary
+SQLite database, temporary upload directory, and fictional provider doubles.
+It exercises real HTTP and multipart parsing without calling PaddleOCR, Qwen,
+VIES, email, or any external network endpoint. It verifies provider laziness,
+upload boundaries, history/detail contracts, provenance conflicts, original
+bytes, GL override, approval/rejection/correction states, draft failures, CORS,
+consistent errors, and stored-file deletion.
+
+Checkpoint: the backend contract required by the Stage 11 React experience is
+complete and verified; the current React checkpoint remains unchanged until
+that next slice.

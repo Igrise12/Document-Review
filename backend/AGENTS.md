@@ -17,7 +17,7 @@ The stack is locked unless Dave explicitly approves a change.
 
 ## Layout
 
-The current checkpoint contains configuration, persistence, the health route, the primary parser, local Qwen adapters, and deterministic extraction reconciliation. Continue adding workflow code using these boundaries:
+The current checkpoint contains configuration, persistence, provider adapters, deterministic reconciliation and policy, synchronous workflow orchestration, and the minimal review API. Continue adding workflow code using these boundaries:
 
 ```text
 backend/
@@ -52,13 +52,25 @@ Do not create empty architectural layers before the tutorial reaches them.
 
 ## Stage 9 workflow
 
-- `backend/app/invoices/service.py` owns the synchronous single-document workflow. Construct it with the repository, local file storage, primary parser, and VLM provider; keep routes as callers, not orchestrators.
+- `backend/app/invoices/service.py` owns the synchronous single-document workflow. Construct it with the repository, local file storage, and lazy primary/VLM provider factories; keep routes as callers, not orchestrators.
 - `upload_document()` validates and stores the original before creating the uploaded review record. If record creation fails, remove the newly stored file.
 - `process_review()` accepts only `uploaded` or retryable `failed` reviews, clears stale processing payloads, and runs: classification → primary parse → type reconciliation → original-document VLM review → deterministic merge → policy validation → GL suggestion → persistence.
 - Require Qwen classification and PaddleOCR document types to agree before VLM extraction. A disagreement becomes the blocking `document_type_conflict` issue and a recoverable `failed` review.
 - Persist safe partial normalized data, evidence, issues, and provider metadata when a later provider fails. A partial result stays `failed`; only the complete pipeline becomes `ready_for_review`. GL suggestion failure also remains retryable `failed`.
 - Keep provider run metadata structured and omit uploaded content, secrets, and full document text from logs and failure messages.
-- Keep provider construction off `/health`; do not load PaddleOCR or contact Qwen during app construction or health checks.
+- Keep provider factories lazy and cached. App construction, `/health`, upload, history, detail, and original-file reads must not load PaddleOCR or create the Qwen client.
+
+## Stage 10 minimal API
+
+- Keep the unversioned local contract small: `POST /reviews`; `GET /reviews`; `GET /reviews/{id}`; `GET /reviews/{id}/original`; `POST /reviews/{id}/process`; `PUT /reviews/{id}/gl-selection`; `POST /reviews/{id}/approve`; `POST /reviews/{id}/reject`; `POST /reviews/{id}/correction-request`; `POST /reviews/{id}/correction-draft`; `DELETE /reviews/{id}`; and `GET /gl-catalog`.
+- `POST /reviews` accepts multipart field `file` and rejects zero or multiple files, empty content, unsupported media types, false file signatures, and content over 4 MB. The service/storage boundary validates the bytes again.
+- History responses stay compact. Detail responses expose normalized fields, evidence, conflicts, issues, GL review data, provider/action metadata, approval eligibility, and safe original-file metadata. Never expose storage keys or duplicate keys.
+- Original-file responses use the persisted media type and exact bytes for the Stage 11 preview. Resolve the storage key through the service/repository; never accept it from the client.
+- GL selection, approval, rejection, and correction request are allowed only from `ready_for_review`. Approval always reruns the deterministic approval gate. Correction request and draft require a blocking issue.
+- Correction request records state only. Correction draft calls Qwen on demand, is not persisted, has Copy/Close consumers only, and must never send email.
+- Record action kind and a UTC timestamp without claiming an actor identity; this local build has no authentication.
+- Return handled errors as `{"error":{"code":"...","message":"..."}}`: 404 for missing reviews, 409 for invalid transitions or blocked actions, 422 for invalid requests/uploads/GL selections, and 502 for correction-draft provider failures. A pipeline provider failure that was safely persisted returns HTTP 200 with review state `failed`.
+- Local CORS permits only `http://localhost:5173` and `http://127.0.0.1:5173`, the implemented methods, and `Content-Type`.
 
 ## Configuration
 
@@ -89,10 +101,11 @@ PYTHONPATH=. uv run --locked --no-sync python ../playground/check_paddleocr.py
 PYTHONPATH=. uv run --locked --no-sync python ../playground/check_qwen.py
 PYTHONPATH=. uv run --locked --no-sync python ../playground/check_reconciliation.py
 PYTHONPATH=. uv run --locked --no-sync python ../playground/check_service.py
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_api.py
 uv run --locked --no-sync ruff check app ../playground
 ```
 
-If the default uv cache is read-only, set `UV_CACHE_DIR=/tmp/invoice-review-uv-cache` on each command. The provider smoke check uses fictional invoice, receipt, and two-page PDF samples and the external model cache; it does not write provider output to the repository.
+If the default uv cache is read-only, set `UV_CACHE_DIR=/tmp/invoice-review-uv-cache` on each command. The API check opens an ephemeral loopback port and uses fictional provider doubles; it makes no external network or model calls. The provider smoke check uses fictional invoice, receipt, and two-page PDF samples and the external model cache; it does not write provider output to the repository.
 
 Provider checks and corpus evaluations consume local compute and model-cache storage. Document the runtime, exact model version, expected calls, hardware, and cleanup command before running them. Complete verification also includes startup readiness and the manual end-to-end workflow.
 
