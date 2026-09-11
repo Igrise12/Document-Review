@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, CircleAlert, RotateCw, Send, Trash2, XCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, CircleAlert, LoaderCircle, RotateCw, Send, Trash2, XCircle } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +15,8 @@ type ReviewPanelProps = {
   review: ReviewDetail
   accounts: GLAccount[]
   busy: boolean
+  processBusy: boolean
+  processingStage: number
   onProcess: () => void
   onSelectGl: (accountId: string | null) => void
   onApprove: () => void
@@ -42,6 +44,14 @@ const stateClasses: Record<ReviewState, string> = {
   correction_requested: 'border-orange-200 bg-orange-50 text-orange-700',
   failed: 'border-red-200 bg-red-50 text-red-700',
 }
+
+const PROCESSING_STAGES = [
+  { label: 'Reading document', description: 'Preparing the original file for local processing.' },
+  { label: 'Classifying document', description: 'Determining whether this is an invoice or receipt.' },
+  { label: 'Extracting fields', description: 'Reading supplier, dates, totals, and other details.' },
+  { label: 'Checking policy', description: 'Combining evidence and checking VAT and totals.' },
+  { label: 'Preparing review', description: 'Suggesting the accounting category and saving the result.' },
+]
 
 function IssueList({ review }: { review: ReviewDetail }) {
   const errors = review.issues.filter((issue) => issue.severity === 'error')
@@ -219,7 +229,7 @@ function GLDecisionPanel({
   onApprove,
   onReject,
   onRequestCorrection,
-}: Omit<ReviewPanelProps, 'onDelete' | 'onProcess'>) {
+}: Omit<ReviewPanelProps, 'onDelete' | 'onProcess' | 'processBusy' | 'processingStage'>) {
   const ready = review.state === 'ready_for_review'
   const suggestion = review.gl_review?.suggestion
   const selectedId = review.gl_review?.selection?.account_id ?? 'unselected'
@@ -291,6 +301,8 @@ export function ReviewPanel({
   review,
   accounts,
   busy,
+  processBusy,
+  processingStage,
   onProcess,
   onSelectGl,
   onApprove,
@@ -299,15 +311,18 @@ export function ReviewPanel({
   onDelete,
 }: ReviewPanelProps) {
   const document = review.normalized_document
-  const needsProcessing = review.state === 'uploaded' || review.state === 'failed'
-  const processing = review.state === 'processing'
+  const processing = review.state === 'processing' || (processBusy && (review.state === 'uploaded' || review.state === 'failed'))
+  const visibleState = processing ? 'processing' : review.state
+  const needsProcessing = !processing && (review.state === 'uploaded' || review.state === 'failed')
+  const activeStage = Math.min(Math.max(processingStage, 0), PROCESSING_STAGES.length - 1)
+  const currentStage = PROCESSING_STAGES[activeStage]
 
   return (
     <div className="space-y-4">
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
           <div>
-            <div className="flex items-center gap-2"><Badge variant="outline" className={stateClasses[review.state]}>{stateLabels[review.state]}</Badge>{review.document_type && <span className="text-sm capitalize text-muted-foreground">{review.document_type}</span>}</div>
+            <div className="flex items-center gap-2"><Badge variant="outline" className={stateClasses[visibleState]}>{stateLabels[visibleState]}</Badge>{review.document_type && <span className="text-sm capitalize text-muted-foreground">{review.document_type}</span>}</div>
             <p className="mt-2 text-sm text-muted-foreground">Updated {formatDateTime(review.updated_at)}</p>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={onDelete} disabled={busy}><Trash2 className="size-4" />Delete review</Button>
@@ -327,9 +342,32 @@ export function ReviewPanel({
       )}
 
       {processing && (
-        <Alert>
-          <AlertTitle>Processing document</AlertTitle>
-          <AlertDescription>The local parser, independent review, deterministic merge, policy checks, and GL suggestion are running in this request.</AlertDescription>
+        <Alert className="border-primary/20 bg-primary/5">
+          <div className="flex gap-3">
+            <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <AlertTitle>Processing document</AlertTitle>
+              <AlertDescription className="mt-2">
+                <p className="font-medium text-foreground" aria-live="polite">{currentStage.label}</p>
+                <p className="mt-1">{currentStage.description}</p>
+                <ol className="mt-4 grid gap-2 sm:grid-cols-5" aria-label="Processing steps">
+                  {PROCESSING_STAGES.map((stage, index) => (
+                    <li
+                      key={stage.label}
+                      aria-current={index === activeStage ? 'step' : undefined}
+                      className={`flex items-center gap-2 rounded-md border px-2 py-2 text-xs ${index < activeStage ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : index === activeStage ? 'border-primary/30 bg-background text-foreground ring-1 ring-primary/20' : 'border-border bg-background/60 text-muted-foreground'}`}
+                    >
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded-full border bg-background">
+                        {index < activeStage ? <CheckCircle2 className="size-3.5" aria-hidden="true" /> : index === activeStage ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" /> : index + 1}
+                      </span>
+                      <span>{stage.label}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-3 text-xs text-muted-foreground">Stage updates are estimates while the local review request is running.</p>
+              </AlertDescription>
+            </div>
+          </div>
         </Alert>
       )}
 

@@ -53,6 +53,8 @@ type HealthState = 'checking' | 'healthy' | 'unavailable'
 type BusyAction = 'approve' | 'delete' | 'draft' | 'gl' | 'open' | 'process' | 'reject' | 'request_correction' | 'upload'
 type Notice = { message: string; variant: 'default' | 'destructive' }
 
+const PROCESSING_STAGE_COUNT = 5
+
 function fileKind(file: File): PreviewKind | null {
   const extension = file.name.split('.').pop()?.toLowerCase()
   if (file.type === 'application/pdf' || extension === 'pdf') return 'pdf'
@@ -84,6 +86,7 @@ function App() {
   const [fileError, setFileError] = useState<string | null>(null)
   const [review, setReview] = useState<ReviewDetail | null>(null)
   const [busyAction, setBusyAction] = useState<BusyAction | null>(null)
+  const [processingStage, setProcessingStage] = useState(0)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [draftOpen, setDraftOpen] = useState(false)
   const [draft, setDraft] = useState<string | null>(null)
@@ -92,6 +95,16 @@ function App() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const busy = busyAction !== null
+
+  useEffect(() => {
+    if (busyAction !== 'process') return
+
+    const timer = window.setInterval(() => {
+      setProcessingStage((stage) => Math.min(stage + 1, PROCESSING_STAGE_COUNT - 1))
+    }, 5000)
+
+    return () => window.clearInterval(timer)
+  }, [busyAction])
 
   const refreshHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -234,6 +247,7 @@ function App() {
     operation: () => Promise<ReviewDetail>,
     successMessage: string,
   ) => {
+    if (action === 'process') setProcessingStage(0)
     setBusyAction(action)
     setNotice(null)
     logFrontendEvent('info', 'review.action_started', { action })
@@ -248,6 +262,7 @@ function App() {
       setNotice({ message: messageFor(error, 'Could not update the review.'), variant: 'destructive' })
       logFrontendEvent('error', 'review.action_failed', { action })
     } finally {
+      if (action === 'process') setProcessingStage(0)
       setBusyAction(null)
     }
   }
@@ -390,6 +405,8 @@ function App() {
               review={review}
               accounts={accounts}
               busy={busy}
+              processBusy={busyAction === 'process'}
+              processingStage={processingStage}
               onProcess={handleProcess}
               onSelectGl={handleSelectGl}
               onApprove={handleApprove}

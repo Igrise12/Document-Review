@@ -538,3 +538,32 @@ VIES lookup or background worker.
 
 Checkpoint: the frontend now consumes the complete Stage 10 API contract with
 accessible local review controls and console-only, redacted frontend logging.
+
+## Stage 12 checkpoint — processing progress feedback
+
+Completed on 2026-09-11. The synchronous processing action now shows a spinner,
+the current expected pipeline stage, completed and upcoming stages, and a clear
+note that stage updates are estimated. The UI starts this feedback as soon as
+the request begins, so the user is not left looking at the uploaded state while
+the local parser and Qwen review run.
+
+No API or dependency change was needed. The stages mirror the existing service
+order: read the document, classify it, extract fields, check policy, and save
+the accounting review. The backend remains synchronous, so exact provider
+progress is not claimed or simulated as a percentage.
+
+Commands run:
+
+```bash
+cd frontend
+pnpm exec tsc -b --pretty false
+pnpm lint
+pnpm build
+```
+
+The observable result is a clean TypeScript check, lint run, and production
+build. During processing, the Review panel shows the estimated stage list and
+keeps the process action disabled until the API returns.
+
+Checkpoint: a user can see that processing is active and understand the local
+review stages while waiting for the synchronous response.
