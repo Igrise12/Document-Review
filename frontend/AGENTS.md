@@ -14,7 +14,7 @@ This is not a Next.js application. Do not introduce Next.js, SSR, server compone
 
 ## Layout
 
-The starter branch intentionally contains only `src/.gitkeep`. Create the interface during the build using this layout:
+The current checkpoint contains a single React developer harness. Keep the interface small and add application components only when a real workflow slice needs them:
 
 ```text
 frontend/
@@ -64,11 +64,16 @@ Do not create route, state, form, or component frameworks before the workflow ne
 
 ## Verification
 
-The starter has no frontend implementation. Verify it only with:
+Verify the current harness with:
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm exec tsc -b --pretty false
+pnpm lint
+pnpm build
 ```
+
+The harness uses `src/lib/api.ts` for the health request, browser `URL.createObjectURL` for local PDF/image preview, and revokes object URLs when the selected file changes or the component unmounts. It has no upload/process endpoint yet and must not invent extraction, confidence, or approval results.
 
 As implementation is added, keep all documented frontend checks green:
 

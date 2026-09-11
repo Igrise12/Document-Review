@@ -34,7 +34,7 @@ This checklist turns the client brief, target architecture, local-provider decis
 - [x] Keep the starter checkpoint intact: `GET /health` returns `{"status":"ok"}` and the React starter screen loads.
 - [x] Update the root README and environment guidance so they agree with the local PaddleOCR/Qwen direction documented in `docs/`.
 - [x] Document the local runtime choices, model-cache location, hardware expectations, and the fact that local execution has no per-document API charge.
-- [ ] Approve and document the direct PaddleOCR package/version before adding it; candidate is `paddleocr[doc-parser]==3.7.0` with `paddlepaddle==3.2.0`, and Dave approval is still required before changing dependencies.
+- [x] Approve and document the direct PaddleOCR package/version before adding it: `paddleocr[doc-parser]==3.7.0` with `paddlepaddle==3.2.0` for the CPU checkpoint.
 - [x] Preserve exact dependency pins and lockfiles.
 - [x] Verify the starter with:
   - [x] `cd backend && uv sync --locked`
@@ -115,17 +115,17 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ## 4. Implement the primary PaddleOCR adapter
 
-- [ ] Create the PaddleOCR provider adapter under `backend/app/providers/`.
-- [ ] Integrate PP-StructureV3 as the default primary parser for OCR, layout, tables, page assets, bounding boxes, and confidence values.
-- [ ] Keep PaddleOCR raw response types and package-specific errors inside the adapter.
-- [ ] Map OCR/layout output into the normalized invoice/receipt extraction contract.
-- [ ] Handle multilingual English, Dutch, German, and French documents.
-- [ ] Handle PDF page rendering inside the provider adapter when image pages are needed.
-- [ ] Preserve page numbers and bounding-box/text context where available for evidence display.
-- [ ] Preserve primary confidence per field and expose low-confidence fields to the domain.
+- [x] Create the PaddleOCR provider adapter under `backend/app/providers/`.
+- [x] Integrate PP-StructureV3 as the default primary parser for OCR, layout, tables, page assets, bounding boxes, and confidence values.
+- [x] Keep PaddleOCR raw response types and package-specific errors inside the adapter.
+- [x] Map OCR/layout output into the normalized invoice/receipt extraction contract.
+- [x] Handle multilingual English, Dutch, German, and French labels in the deterministic mapper.
+- [x] Pass PDF files directly to PP-StructureV3 and aggregate its page results inside the provider adapter; render only when a later provider requires images.
+- [x] Preserve page numbers and bounding-box/text context where available for evidence display.
+- [x] Preserve primary confidence per field and expose it to the domain.
 - [ ] Add PaddleOCR-VL only as an approved, evaluated option for difficult multilingual layouts; do not make it a second untracked business-rules path.
-- [ ] Document the CPU smoke test using the isolated environment and the matching NVIDIA GPU alternative.
-- [ ] Verify PP-StructureV3 against at least one fictional invoice before wiring the full workflow.
+- [x] Document the CPU smoke test using the locked environment and the matching NVIDIA GPU alternative.
+- [x] Verify PP-StructureV3 against fictional invoice, receipt, and two-page PDF samples before wiring the full workflow.
 
 ## 5. Implement the independent Qwen VLM adapters
 

@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
-from time import perf_counter
 from pathlib import Path
+from time import perf_counter
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT = REPO_ROOT / "samples/generated/01-en-happy-classic.pdf"

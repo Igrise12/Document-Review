@@ -208,3 +208,11 @@ class ProviderRunMetadata(BaseModel):
     started_at: AwareDatetime
     finished_at: AwareDatetime | None = None
     duration_ms: int | None = Field(default=None, ge=0)
+
+
+class PrimaryExtractionResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    document: NormalizedFinancialDocument
+    evidence: dict[str, FieldEvidence[object]]
+    provider_run: ProviderRunMetadata

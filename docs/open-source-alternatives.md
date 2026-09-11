@@ -4,7 +4,7 @@
 
 For the current invoice-review brief, use a two-stage local pipeline:
 
-1. **Primary document parsing:** PaddleOCR-VL 0.9B for multilingual document parsing, or PP-StructureV3 when layout/table output and OCR confidence are more important.
+1. **Primary document parsing:** PP-StructureV3 for layout/table output, OCR confidence, and page evidence. PaddleOCR-VL 0.9B remains an optional evaluated path for difficult layouts.
 2. **Independent review, GL suggestion, and correction draft:** Qwen2.5-VL-7B-Instruct (or a newer Qwen3-VL checkpoint after corpus evaluation), served by Ollama for development and vLLM for a GPU-backed service.
 3. **Business rules:** keep `python-stdnum`, deterministic VAT/total checks, merge logic, SQLite, and the human approval step unchanged.
 
@@ -12,7 +12,7 @@ This keeps the existing provider boundaries: only the provider adapters change. 
 
 ## Dependency gate
 
-The proposed direct application dependency is `paddleocr[doc-parser]==3.7.0`, paired with `paddlepaddle==3.2.0` for the documented CPU smoke test. The package is not added to `backend/pyproject.toml` or `backend/uv.lock` until Dave approves the exact versions. See the [PaddleOCR package release](https://pypi.org/project/paddleocr/) before making that change.
+The approved direct application dependencies are `paddleocr[doc-parser]==3.7.0` and `paddlepaddle==3.2.0`. The CPU PaddlePaddle wheel is resolved through the explicit Paddle CPU index; the exact pin is locked in `backend/uv.lock`. GPU is an alternative path only after a host has a compatible NVIDIA driver/CUDA stack and a matching PaddlePaddle GPU wheel. See the [PaddleOCR package release](https://pypi.org/project/paddleocr/) before changing the pins.
 
 ## Mapping from the brief
 

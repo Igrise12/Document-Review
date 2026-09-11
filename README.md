@@ -12,10 +12,10 @@ Tutorial: <https://learn.datalumina.com/docs/invoice-review>
 - A fictional 13-document multilingual corpus
 - Safe environment templates
 - Exact dependency pins and lockfiles
-- Minimal FastAPI and React starter applications
+- Minimal FastAPI service, a Stage 4 PaddleOCR adapter, and a React checkpoint harness
 - An install-free development supervisor and readiness check
 
-Completed workflow code is intentionally absent. The tutorial builds the review workflow from this starting point.
+The upload/process API and completed review workflow are intentionally absent. The tutorial builds the remaining workflow from this verified parser checkpoint.
 
 ## Prerequisites
 
@@ -29,11 +29,11 @@ Completed workflow code is intentionally absent. The tutorial builds the review 
 - PaddleOCR PP-StructureV3 is the primary parser for OCR, layout, tables, boxes, and confidence.
 - Qwen2.5-VL-7B-Instruct is the independent reviewer and generator.
 - Ollama is the local development runtime; vLLM is the optional GPU-backed runtime.
-- Model weights and caches belong outside this repository, for example Ollama's configured model directory or `/tmp/invoice-paddleocr` for the isolated PaddleOCR smoke test.
+- Model weights and caches belong outside this repository, for example Ollama's configured model directory or PaddleX's external model cache.
 - CPU works for a smoke test but is slow; an NVIDIA GPU with matching PaddlePaddle and vLLM/Ollama support is recommended for repeated corpus runs.
 - Local execution has no per-document API charge; it uses machine compute, storage, electricity, and model download time instead.
 
-PaddleOCR is intentionally not in `backend/pyproject.toml` yet. The proposed pins are `paddleocr[doc-parser]==3.7.0` and `paddlepaddle==3.2.0` for the CPU smoke test; Dave must approve them before they are added and locked.
+The approved CPU pins are `paddleocr[doc-parser]==3.7.0` and `paddlepaddle==3.2.0`; they are installed from the locked backend environment. GPU remains an alternative after a compatible NVIDIA driver/CUDA host and matching PaddlePaddle GPU wheel are available.
 
 ## Install
 
@@ -45,9 +45,9 @@ cd ../frontend
 pnpm install --frozen-lockfile
 ```
 
-Copy `backend/.env.example` to `backend/.env` when the provider stage begins, and copy `frontend/.env.example` to `frontend/.env` for local frontend configuration. The starter itself does not call PaddleOCR or Qwen and does not require provider credentials.
+Copy `backend/.env.example` to `backend/.env` for later provider configuration, and copy `frontend/.env.example` to `frontend/.env` for local frontend configuration. The health/checkpoint UI does not call PaddleOCR or Qwen and does not require provider credentials.
 
-## Run and verify the starter
+## Run and verify the local checkpoint
 
 ```bash
 cd backend
@@ -61,7 +61,14 @@ cd ..
 ./scripts/dev.sh
 ```
 
-Open <http://localhost:5173>. The starter API health endpoint is <http://localhost:8000/health> and returns `{"status":"ok"}`.
+Open <http://localhost:5173>. The checkpoint UI checks the API health endpoint at <http://localhost:8000/health>, previews one local document, and clearly leaves processing for the next stage.
+
+Run the real primary-parser smoke check:
+
+```bash
+cd backend
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_paddleocr.py
+```
 
 For static verification:
 

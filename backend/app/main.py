@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.invoices.repository import InvoiceReviewRepository
@@ -11,6 +12,13 @@ def create_app() -> FastAPI:
     repository.initialize()
     storage = LocalFileStorage(settings.uploads_dir)
     app = FastAPI(title="Invoice Review")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173"],
+        allow_credentials=False,
+        allow_methods=["GET"],
+        allow_headers=[],
+    )
     app.state.settings = settings
     app.state.repository = repository
     app.state.storage = storage

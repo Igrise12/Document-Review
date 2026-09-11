@@ -5,17 +5,16 @@ Read `docs/client-brief.md`, `docs/architecture.md`, and `docs/build-along.md` b
 ## Stack
 
 - Backend: Python 3.12+, uv, FastAPI, Pydantic v2, SQLAlchemy 2, SQLite.
-- Extraction: Azure AI Document Intelligence `prebuilt-invoice` and `prebuilt-receipt`.
-- Independent review and categorization: Azure OpenAI Responses API with Entra authentication and strict structured output.
+- Extraction: PaddleOCR PP-StructureV3 for primary OCR/layout parsing, with an optional evaluated PaddleOCR-VL path for difficult layouts.
+- Independent review and categorization: local Qwen VLM through Ollama for development or vLLM for GPU-backed serving, with strict structured output.
 - VAT checks: local EU structure/checksum validation with `python-stdnum`; no live VIES claim.
 - Frontend: Vite, React, TypeScript strict, Tailwind CSS, pnpm.
 - Verification: Ruff for backend; TypeScript, ESLint, production build, explicit live evaluators, and a manual browser walkthrough for the complete flow.
 
 ## Boundaries
 
-- Azure SDK types stop in `backend/app/providers/azure_document_intelligence.py`.
-- OpenAI SDK types stop in the provider adapters under `backend/app/providers/`, including document review, GL suggestion, and correction-email drafting.
-- The document reviewer receives the original PDF/PNG/JPEG and returns classification plus provider-independent structured fields. Document Intelligence remains primary; deterministic merging only fills its missing fields and exposes provenance.
+- PaddleOCR, Ollama, vLLM, and model-specific types stop in the provider adapters under `backend/app/providers/`.
+- The primary parser returns normalized provider-independent fields and evidence. The independent document reviewer receives the original PDF/PNG/JPEG; deterministic merging only fills missing primary fields and exposes provenance.
 - The GL categorizer receives normalized invoice fields only.
 - The GL catalog and selection validation live in `backend/app/accounting/`; model output never becomes business policy.
 - Business rules live in `backend/app/invoices/validation.py` and must be pure.
@@ -49,4 +48,4 @@ Update `docs/build-along.md` in the same commit as every working slice. Include 
 
 ## Secrets and data
 
-Never commit `.env`, Azure keys, uploaded invoices, private documents, or SQLite databases. Generated samples must contain only fictional data.
+Never commit `.env`, local provider credentials, uploaded invoices, private documents, or SQLite databases. Generated samples must contain only fictional data.

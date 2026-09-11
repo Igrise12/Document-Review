@@ -5,6 +5,8 @@ requires-python = ">=3.12"
 dependencies = [
   "fastapi==0.139.0",
   "openai==2.45.0",
+  "paddleocr[doc-parser]==3.7.0",
+  "paddlepaddle==3.2.0",
   "pydantic==2.13.4",
   "pydantic-settings==2.14.2",
   "python-multipart==0.0.32",
@@ -24,7 +26,18 @@ dev = [
 [tool.uv]
 add-bounds = "exact"
 exclude-newer = "7 days"
+# Cooldown exception: the exact paddlepaddle==3.2.0 CPU wheel is approved for
+# this checkpoint; keep the exception scoped to this package only.
+exclude-newer-package = { paddlepaddle = false }
 package = false
+
+[[tool.uv.index]]
+name = "paddle-cpu"
+url = "https://www.paddlepaddle.org.cn/packages/stable/cpu/"
+explicit = true
+
+[tool.uv.sources]
+paddlepaddle = { index = "paddle-cpu" }
 
 [tool.ruff]
 line-length = 100

@@ -44,49 +44,49 @@ The starter does not need backend provider credentials. Add the local provider s
 
 ## Local provider checkpoint
 
-When the provider stage begins, install PaddleOCR in a separate or approved locked environment. The CPU smoke-test setup is:
+The provider checkpoint uses the approved backend lockfile. The CPU smoke-test setup is:
 
 ```bash
-uv venv /tmp/invoice-paddleocr
-source /tmp/invoice-paddleocr/bin/activate
-uv pip install "paddlepaddle==3.2.0" \
-  --index-url https://www.paddlepaddle.org.cn/packages/stable/cpu/
-# Run only after Dave approves this exact direct package pin.
-uv pip install "paddleocr[doc-parser]==3.7.0"
+cd backend
+uv sync --locked
+# If the host uv cache is read-only:
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache uv sync --locked
 ```
 
 Verify the parser against a fictional invoice:
 
 ```bash
 paddleocr pp_structurev3 \
-  -i samples/generated/01-en-happy-classic.pdf \
+  -i ../samples/generated/01-en-happy-classic.pdf \
   --engine paddle \
   --save_path /tmp/paddleocr-output
 ```
 
-These commands are an isolated smoke test only. Once the provider is integrated, pin the approved direct versions in `backend/pyproject.toml` and commit the updated `backend/uv.lock`.
+The direct versions are pinned in `backend/pyproject.toml` and `backend/uv.lock`. `paddlepaddle==3.2.0` is resolved only from the explicit Paddle CPU index; the package-specific cooldown exception is documented beside the uv setting because this exact wheel is approved for the checkpoint. GPU remains a host-dependent alternative using a matching `paddlepaddle-gpu` wheel.
 
 Use the matching `paddlepaddle-gpu` wheel for an NVIDIA setup. Then run a local Qwen2.5-VL model through Ollama for development or vLLM for GPU-backed serving. Keep model weights and runtime data outside the repository; do not commit them.
 
 ## Playground smoke test
 
-The first PaddleOCR experiment lives in `playground/analyze_sample_invoice.py`. It is intentionally separate from the application provider adapter: the script is for inspecting raw PP-StructureV3 output, while production mapping will be promoted into `backend/app/providers/` after the output shape and corpus behavior are understood.
+The raw PaddleOCR experiment remains in `playground/analyze_sample_invoice.py` for inspecting provider JSON/Markdown. The application mapping now lives in `backend/app/providers/paddleocr.py`; third-party result objects and package errors stop there.
 
-Run it from the isolated environment created above:
+Run the raw inspection script from the repository environment:
 
 ```bash
-source /tmp/invoice-paddleocr/bin/activate
-cd playground
-python analyze_sample_invoice.py --device cpu
+cd backend
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/analyze_sample_invoice.py --device cpu
 ```
 
 The default input is `samples/generated/01-en-happy-classic.pdf`. To inspect another fictional document or print the structured result to the terminal:
 
 ```bash
-python analyze_sample_invoice.py samples/generated/13-nl-fuel-receipt.png --device cpu --print-results
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/analyze_sample_invoice.py \
+  ../samples/generated/13-nl-fuel-receipt.png --device cpu --print-results
 ```
 
-The script writes PaddleOCR JSON and Markdown artifacts to `/tmp/paddleocr-output`. Use `--device gpu` or `--device gpu:0` when the isolated environment has a working NVIDIA setup. No uploaded document, model output, or model weight is written to the repository.
+The script writes PaddleOCR JSON and Markdown artifacts to `/tmp/paddleocr-output`. Use `--device gpu` or `--device gpu:0` when the environment has a working NVIDIA setup. No uploaded document, model output, or model weight is written to the repository.
 
 ## Checkpoint
 
@@ -104,7 +104,7 @@ Continue with the [online tutorial](https://learn.datalumina.com/docs/invoice-re
 
 Completed on 2026-09-11. The missing starter boundary was restored: `GET /health` is available, the React starter screen builds and serves, and `scripts/dev.sh` can supervise both processes. README and environment guidance now describe the local PaddleOCR/Qwen stack, model-cache placement, hardware expectations, and the absence of per-document API charges.
 
-The proposed direct PaddleOCR pin is `paddleocr[doc-parser]==3.7.0` with `paddlepaddle==3.2.0` for the CPU smoke test. It remains pending Dave's approval, so stage 1 leaves `backend/pyproject.toml` and `backend/uv.lock` unchanged with respect to PaddleOCR.
+The exact direct PaddleOCR pins were approved for the later Stage 4 checkpoint: `paddleocr[doc-parser]==3.7.0` with `paddlepaddle==3.2.0`. Stage 1 itself remains a historical starter checkpoint and did not include provider dependencies.
 
 Commands run:
 
@@ -128,7 +128,7 @@ cd ..
 
 The locked installs, backend lint, frontend type-check, ESLint, and production build passed. The readiness check correctly reported that port 8000 was already occupied by an unrelated local Uvicorn process, so `./scripts/dev.sh` could not claim the default API port without stopping it. The starter API was instead run on port 18000 and returned `{"status":"ok"}`; the Vite page was fetched successfully from port 5173. No provider request occurred.
 
-Checkpoint: starter code and documentation are ready for provider implementation; run the two `scripts/dev.sh` commands again after freeing ports 8000 and 5173. Do not add PaddleOCR until the exact pin is approved.
+Checkpoint: starter code and documentation were ready for provider implementation; Stage 4 below records the later approved provider slice.
 
 ## Playground checkpoint — corpus document types
 
@@ -185,3 +185,38 @@ pnpm build
 The observable result is `PASS: local configuration, file storage, and SQLite persistence`, followed by clean Ruff, TypeScript, ESLint, and production-build checks. The smoke check uses a temporary directory, so it leaves no sample upload or SQLite database in the repository. No PaddleOCR, Qwen, or external provider request occurs.
 
 Checkpoint: settings, safe original-file storage, and repository round-trips are ready for provider orchestration and HTTP routes.
+
+## Stage 4 checkpoint — primary parser and frontend harness
+
+Completed on 2026-09-11. PP-StructureV3 is now behind `backend/app/providers/paddleocr.py`. The adapter validates the original bytes again, writes only a temporary file for synchronous inference, unwraps the provider result, aggregates PDF pages, and returns only normalized financial-document models, field evidence, and provider metadata. The mapper uses a deliberately small multilingual label-window heuristic for the fictional English, Dutch, German, and French corpus; missing values remain missing.
+
+The provider boundary matters because raw PaddleOCR result objects, NumPy arrays, and package-specific exceptions must not leak into domain models, persistence, or the frontend. The adapter records `paddleocr`, `PP-StructureV3`, `paddleocr==3.7.0`, the schema version, CPU/device runtime, duration, confidence, page, box, and text context for primary fields. It does not create VLM fallback, merge, conflict, validation, or approval state yet.
+
+Exact dependency and verification commands:
+
+```bash
+cd backend
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache uv sync --locked
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache uv run --locked --no-sync ruff check app ../playground
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/check_paddleocr.py
+
+cd ../frontend
+pnpm install --frozen-lockfile
+pnpm exec tsc -b --pretty false
+pnpm lint
+pnpm build
+```
+
+The observable provider result is:
+
+```text
+PASS 01-en-happy-classic.pdf: invoice, vendor, total 121.00, primary evidence
+PASS 13-nl-fuel-receipt.png: receipt, total 60.50, VAT 10.50
+PASS 12-en-two-page.pdf: two pages combined with page evidence
+PaddleOCR adapter smoke check passed.
+```
+
+The React page is a developer harness named “Primary Parser Checkpoint”. It checks `GET /health`, validates one local PDF/PNG/JPEG up to 4 MB, previews the selected file with a browser object URL, and explicitly says processing is not available. It does not call a provider on page load, invent extraction values, or simulate confidence/approval. VLM review, merge/provenance conflicts, deterministic validation, GL selection, upload/process API orchestration, and the full Maya review UI remain future stages.
+
+Checkpoint: the primary parser has a real CPU smoke path and the frontend can show the evidence document plus backend readiness before the API stage begins.
