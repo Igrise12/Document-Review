@@ -47,40 +47,40 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ### Normalized financial document
 
-- [ ] Add a strict Pydantic v2 model for the normalized financial document.
-- [ ] Represent the document type as `invoice` or `receipt`.
-- [ ] Represent money with exact decimal values, never binary floating-point arithmetic.
-- [ ] Normalize dates to an unambiguous ISO date representation.
-- [ ] Normalize currency codes and VAT IDs while retaining the display value needed for review.
-- [ ] Include source-document metadata needed for file name, media type, size, page count, and processing timestamps.
+- [x] Add a strict Pydantic v2 model for the normalized financial document.
+- [x] Represent the document type as `invoice` or `receipt`.
+- [x] Represent money with exact decimal values, never binary floating-point arithmetic.
+- [x] Normalize dates to an unambiguous ISO date representation.
+- [x] Normalize currency codes and VAT IDs while retaining the display value needed for review.
+- [x] Include source-document metadata needed for file name, media type, size, page count, and processing timestamps.
 
 ### Invoice fields
 
-- [ ] Model vendor name and supplier VAT ID.
-- [ ] Model customer name and customer VAT ID.
-- [ ] Model invoice number, invoice date, due date, purchase order, and currency.
-- [ ] Model subtotal, total tax, and invoice total.
+- [x] Model vendor name and supplier VAT ID.
+- [x] Model customer name and customer VAT ID.
+- [x] Model invoice number, invoice date, due date, purchase order, and currency.
+- [x] Model subtotal, total tax, and invoice total.
 
 ### Receipt fields
 
-- [ ] Model merchant, transaction date, expense category, currency, subtotal, VAT total, and total.
-- [ ] Make invoice-only fields inapplicable rather than treating them as missing receipt requirements.
+- [x] Model merchant, transaction date, expense category, currency, subtotal, VAT total, and total.
+- [x] Make invoice-only fields inapplicable rather than treating them as missing receipt requirements.
 
 ### Evidence and uncertainty
 
-- [ ] Define a provider-neutral field evidence shape containing value, confidence, source, and optional page/box or text context.
-- [ ] Distinguish primary-parser values, VLM fallback values, merged values, missing values, and conflicts.
-- [ ] Store the primary value and VLM value when they conflict so the UI can show both.
-- [ ] Store provider/model name, model version, prompt version, schema version, and processing metadata with each review.
-- [ ] Define structured issue codes, severity, message, and affected field.
-- [ ] Define review states needed by the flow: uploaded, processing, ready for review, approved, rejected, correction requested, and failed.
-- [ ] Define a correction-email draft response containing copyable text and no send operation.
+- [x] Define a provider-neutral field evidence shape containing value, confidence, source, and optional page/box or text context.
+- [x] Distinguish primary-parser values, VLM fallback values, merged values, missing values, and conflicts.
+- [x] Store the primary value and VLM value when they conflict so the UI can show both.
+- [x] Store provider/model name, model version, prompt version, schema version, and processing metadata with each review.
+- [x] Define structured issue codes, severity, message, and affected field.
+- [x] Define review states needed by the flow: uploaded, processing, ready for review, approved, rejected, correction requested, and failed.
+- [x] Define a correction-email draft response containing copyable text and no send operation.
 
 ### GL selection
 
-- [ ] Define a provider-independent GL account model with stable ID, label, and Northstar category.
-- [ ] Define the distinction between a model suggestion and Maya's selected account.
-- [ ] Define the validation result that makes a selected account eligible for approval.
+- [x] Define a provider-independent GL account model with stable ID, label, and Northstar category.
+- [x] Define the distinction between a model suggestion and Maya's selected account.
+- [x] Define the validation result that makes a selected account eligible for approval.
 
 ## 3. Establish configuration and local persistence
 

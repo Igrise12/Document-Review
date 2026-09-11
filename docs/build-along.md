@@ -138,9 +138,27 @@ Run it with the existing backend environment:
 
 ```bash
 cd backend
-uv run --locked --no-sync python ../playground/check_document_types.py
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_document_types.py
 ```
 
 The observable result is `PASS: 12 invoices, 1 receipt`, followed by one line per sample. A provider classifier can later feed its structured output into the same `DocumentType` boundary.
 
 Checkpoint: the golden corpus labels and Pydantic shape are validated before provider implementation begins.
+
+## Stage 2 checkpoint — provider-independent contracts
+
+Stage 2 adds the canonical Pydantic v2 contracts under `backend/app/`. The normalized financial document is a discriminated `invoice`/`receipt` union. Invoice-only fields are not accepted by receipt models. Money uses exact `Decimal` values and rejects float input; currency and VAT models retain both normalized and display values.
+
+The same contract boundary now describes typed field evidence, primary/VLM fallback/conflict states, review issues and states, provider run metadata, GL suggestions versus Maya's selection, and copyable correction-email drafts. These models contain no provider SDK types, business-policy decisions, database code, or email-sending behavior.
+
+Run the playground contract check and backend lint:
+
+```bash
+cd backend
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_document_types.py
+uv run --locked --no-sync ruff check app ../playground/check_document_types.py
+```
+
+The observable result is `PASS: 12 invoices, 1 receipt; stage 2 contracts valid`, followed by the corpus classification. Ruff reports no errors. No provider request or dependency installation is required.
+
+Checkpoint: provider adapters, deterministic validation, persistence, and routes can now depend on one provider-independent Pydantic contract.
