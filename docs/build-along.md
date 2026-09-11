@@ -129,3 +129,18 @@ cd ..
 The locked installs, backend lint, frontend type-check, ESLint, and production build passed. The readiness check correctly reported that port 8000 was already occupied by an unrelated local Uvicorn process, so `./scripts/dev.sh` could not claim the default API port without stopping it. The starter API was instead run on port 18000 and returned `{"status":"ok"}`; the Vite page was fetched successfully from port 5173. No provider request occurred.
 
 Checkpoint: starter code and documentation are ready for provider implementation; run the two `scripts/dev.sh` commands again after freeing ports 8000 and 5173. Do not add PaddleOCR until the exact pin is approved.
+
+## Playground checkpoint — corpus document types
+
+The first pre-provider check lives in `playground/check_document_types.py`. It uses the existing locked Pydantic v2 dependency to validate `samples/manifest.json`, enforce `invoice`/`receipt` as the only document types, confirm the expected type-specific fields, and verify that all 13 fictional files exist. It checks the corpus contract; it is not an OCR classifier.
+
+Run it with the existing backend environment:
+
+```bash
+cd backend
+uv run --locked --no-sync python ../playground/check_document_types.py
+```
+
+The observable result is `PASS: 12 invoices, 1 receipt`, followed by one line per sample. A provider classifier can later feed its structured output into the same `DocumentType` boundary.
+
+Checkpoint: the golden corpus labels and Pydantic shape are validated before provider implementation begins.

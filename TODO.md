@@ -314,6 +314,7 @@ This checklist turns the client brief, target architecture, local-provider decis
 - [ ] Create/update an explicit evaluator script that continues after an individual provider failure and reports per-document results.
 - [ ] Compare normalized values rather than only raw OCR text.
 - [ ] Evaluate invoice/receipt classification.
+- [x] Add a playground Pydantic smoke check for the golden corpus's invoice/receipt labels; this does not replace provider classification.
 - [ ] Evaluate supplier/customer names and VAT IDs.
 - [ ] Evaluate invoice/transaction dates, due date, invoice number, PO, currency, subtotal, VAT, and total.
 - [ ] Evaluate policy issue codes and approval/warning outcomes.
