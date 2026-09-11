@@ -220,3 +220,34 @@ PaddleOCR adapter smoke check passed.
 The React page is a developer harness named “Primary Parser Checkpoint”. It checks `GET /health`, validates one local PDF/PNG/JPEG up to 4 MB, previews the selected file with a browser object URL, and explicitly says processing is not available. It does not call a provider on page load, invent extraction values, or simulate confidence/approval. VLM review, merge/provenance conflicts, deterministic validation, GL selection, upload/process API orchestration, and the full Maya review UI remain future stages.
 
 Checkpoint: the primary parser has a real CPU smoke path and the frontend can show the evidence document plus backend readiness before the API stage begins.
+
+## Stage 5 checkpoint — local Qwen VLM adapters
+
+Stage 5 adds `backend/app/providers/qwen.py` as the only boundary for the local Qwen model. It uses the existing OpenAI-compatible dependency and supports both the default Ollama endpoint and vLLM through the settings already defined in `backend/app/config.py`. The adapter accepts the original upload, renders every PDF page to an image inside the provider boundary, and never sends only the primary parser's extracted values to the independent review path.
+
+The provider exposes four focused operations: structured invoice/receipt classification, document review with typed invoice/receipt fields and per-field confidence, GL suggestion from normalized fields plus a supplied catalog, and on-demand correction-draft generation. Each response uses a strict JSON Schema, is validated by Pydantic, records model/runtime/prompt/schema metadata, and retries invalid structured output only within the configured bound. Invalid GL account IDs are discarded rather than becoming business policy. The correction operation returns text only and has no email-sending capability.
+
+No new dependency was added. PDF rendering reuses the locked `pypdfium2` and Pillow environment already present through the existing provider setup. The domain models now carry classification results, raw VLM extraction results, GL suggestion results, and correction-draft results without leaking OpenAI or PDF-renderer types.
+
+Run the deterministic adapter smoke check and backend lint:
+
+```bash
+cd backend
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/check_qwen.py
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync ruff check app ../playground/check_qwen.py
+```
+
+The observable result is `PASS: Qwen offline schema, retry, PDF rendering, GL validation, and draft checks`. The smoke check uses a fake OpenAI-compatible client, so it does not require a running model and does not upload documents. A live check was run against the available Ollama-compatible endpoint and model:
+
+```bash
+LOCAL_VLM_BASE_URL=http://localhost:7869/v1 \
+LOCAL_VLM_MODEL=qwen2.5vl:3b \
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/check_qwen.py --live
+```
+
+The observable result is `PASS: Qwen live checks via ollama (qwen2.5vl:3b)`. The endpoint exposed `qwen2.5vl:3b` rather than the default `qwen2.5vl:7b`, so the model and port were supplied as command-local overrides; the repository defaults remain unchanged. The provider also normalizes harmless model formatting such as currency-prefixed decimal strings before strict domain validation. The full service orchestration, deterministic merge, policy validation, API routes, persistence wiring, and UI remain later stages.
+
+Checkpoint: the Qwen provider boundary and all four structured adapter contracts pass both offline verification and a live local-model smoke check.

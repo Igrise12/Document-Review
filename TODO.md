@@ -129,34 +129,41 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ## 5. Implement the independent Qwen VLM adapters
 
+### Document classification
+
+- [x] Add a small structured Qwen classifier for the original upload that reuses `DocumentType` and returns the document kind, bounded confidence, and concise reasoning.
+- [x] Validate the classifier response with Pydantic before routing invoice/receipt review or extraction.
+- [x] Keep classification separate from VAT, finance policy, GL selection, and approval decisions; record its provider/model metadata.
+- [ ] Keep the PaddleOCR marker-based classifier as an explicit diagnostic/fallback path and surface disagreements instead of silently changing the document type.
+
 ### Document review and extraction
 
-- [ ] Create the document-review adapter under `backend/app/providers/`.
-- [ ] Send the same original PDF/PNG/JPEG to the independent review path; do not send only the primary parser's already-extracted values.
-- [ ] Render PDF pages to images inside the provider boundary when the selected local endpoint requires images.
-- [ ] Use Qwen2.5-VL-7B-Instruct as the initial model; consider a newer Qwen-VL checkpoint only after it passes the fictional corpus evaluation.
-- [ ] Support Ollama for local development and vLLM's OpenAI-compatible endpoint for GPU-backed serving.
-- [ ] Constrain every response with the shared structured schema/JSON Schema.
-- [ ] Validate every response with Pydantic before it reaches normalization or merge logic.
-- [ ] Add a small bounded retry path for invalid structured output and return a clear provider failure when the bound is exhausted.
-- [ ] Record the model/runtime/prompt/schema metadata for every response.
-- [ ] Keep VLM confidence and extracted values as evidence, not as policy decisions.
+- [x] Create the document-review adapter under `backend/app/providers/`.
+- [x] Send the same original PDF/PNG/JPEG to the independent review path; do not send only the primary parser's already-extracted values.
+- [x] Render PDF pages to images inside the provider boundary when the selected local endpoint requires images.
+- [x] Use Qwen2.5-VL-7B-Instruct as the initial model; consider a newer Qwen-VL checkpoint only after it passes the fictional corpus evaluation.
+- [x] Support Ollama for local development and vLLM's OpenAI-compatible endpoint for GPU-backed serving.
+- [x] Constrain every response with the shared structured schema/JSON Schema.
+- [x] Validate every response with Pydantic before it reaches normalization or merge logic.
+- [x] Add a small bounded retry path for invalid structured output and return a clear provider failure when the bound is exhausted.
+- [x] Record the model/runtime/prompt/schema metadata for every response.
+- [x] Keep VLM confidence and extracted values as evidence, not as policy decisions.
 
 ### GL suggestion
 
-- [ ] Create a separate GL suggestion adapter method that receives normalized invoice/receipt fields only.
-- [ ] Pass the fixed Northstar catalog as the allowed suggestion context.
-- [ ] Require structured output containing a suggested account ID, short rationale, and confidence.
-- [ ] Reject or safely display suggestions that do not map to a catalog account.
-- [ ] Never allow model text to create a new account or change the catalog.
+- [x] Create a separate GL suggestion adapter method that receives normalized invoice/receipt fields only.
+- [x] Pass the fixed Northstar catalog as the allowed suggestion context.
+- [x] Require structured output containing a suggested account ID, short rationale, and confidence.
+- [x] Reject or safely display suggestions that do not map to a catalog account.
+- [x] Never allow model text to create a new account or change the catalog.
 
 ### Correction-email draft
 
-- [ ] Create an on-demand correction-draft adapter method.
-- [ ] Provide only the normalized review, blocking issues, and relevant evidence needed to write a clear supplier correction request.
-- [ ] Request concise professional English addressed to the supplier; do not claim that VIES was checked.
-- [ ] Return copyable draft text only.
-- [ ] Ensure the adapter has no email-sending capability or integration.
+- [x] Create an on-demand correction-draft adapter method.
+- [x] Provide only the normalized review, blocking issues, and relevant evidence needed to write a clear supplier correction request.
+- [x] Request concise professional English addressed to the supplier; do not claim that VIES was checked.
+- [x] Return copyable draft text only.
+- [x] Ensure the adapter has no email-sending capability or integration.
 
 ## 6. Normalize, merge, and preserve provenance
 
@@ -238,7 +245,7 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 - [ ] Add `service.py` to orchestrate upload, provider calls, normalization, merge, validation, GL suggestion, and persistence.
 - [ ] Keep the orchestration synchronous and local; do not introduce queues, workers, or batch processing.
-- [ ] Define the order clearly: save original → primary parse → independent VLM review → deterministic merge → policy checks → GL suggestion → persist review.
+- [ ] Define the order clearly: save original → document classification → primary parse → independent VLM review → deterministic merge → policy checks → GL suggestion → persist review.
 - [ ] Ensure provider failures produce a recoverable failed state and an actionable user-facing message.
 - [ ] Keep partial provider results available when safe, without presenting an incomplete review as approved.
 - [ ] Avoid logging uploaded content, provider secrets, or full sensitive document text unnecessarily.
@@ -313,7 +320,7 @@ This checklist turns the client brief, target architecture, local-provider decis
 - [ ] Verify the corpus remains 13 documents and 14 pages: 12 invoices plus one Dutch fuel receipt.
 - [ ] Create/update an explicit evaluator script that continues after an individual provider failure and reports per-document results.
 - [ ] Compare normalized values rather than only raw OCR text.
-- [ ] Evaluate invoice/receipt classification.
+- [ ] Evaluate provider invoice/receipt classification, including confidence, disagreements, and failure behavior; do not treat manifest labels alone as provider classification.
 - [x] Add a playground Pydantic smoke check for the golden corpus's invoice/receipt labels; this does not replace provider classification.
 - [ ] Evaluate supplier/customer names and VAT IDs.
 - [ ] Evaluate invoice/transaction dates, due date, invoice number, PO, currency, subtotal, VAT, and total.
@@ -344,7 +351,7 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 - [ ] Run backend Ruff with the locked environment.
 - [ ] Run frontend TypeScript build/type-check, ESLint, and production build.
-- [ ] Run the local provider smoke test against a fictional invoice.
+- [x] Run the local provider smoke test against a fictional invoice.
 - [ ] Run the corpus evaluator when local providers are available.
 - [ ] Verify the health endpoint and starter/build application locally.
 - [ ] Manually walk through the complete browser story:

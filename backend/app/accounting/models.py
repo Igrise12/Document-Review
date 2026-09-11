@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.document_review.models import Probability
+from app.document_review.models import Probability, ProviderRunMetadata
 
 
 class GLAccount(BaseModel):
@@ -17,6 +17,13 @@ class GLSuggestion(BaseModel):
     account_id: str = Field(min_length=1)
     rationale: str = Field(min_length=1)
     confidence: Probability
+
+
+class GLSuggestionResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    suggestion: GLSuggestion | None = None
+    provider_run: ProviderRunMetadata
 
 
 class GLSelection(BaseModel):

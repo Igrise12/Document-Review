@@ -210,6 +210,29 @@ class ProviderRunMetadata(BaseModel):
     duration_ms: int | None = Field(default=None, ge=0)
 
 
+class DocumentClassification(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    document_type: DocumentType
+    confidence: Probability
+    reasoning: str = Field(min_length=1)
+
+
+class DocumentClassificationResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    classification: DocumentClassification
+    provider_run: ProviderRunMetadata
+
+
+class VLMExtractionResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    document: NormalizedFinancialDocument
+    field_confidence: dict[str, Probability]
+    provider_run: ProviderRunMetadata
+
+
 class PrimaryExtractionResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
