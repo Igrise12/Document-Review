@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from app.accounting.models import GLAccount
+from app.accounting.catalog import get_northstar_gl_catalog
 from app.config import Settings
 from app.document_review.models import (
     DocumentIssue,
@@ -178,10 +178,7 @@ def _offline_check() -> None:
     assert receipt_review.document.document_type == DocumentType.RECEIPT.value
     assert receipt_review.document.fields.total == Decimal("60.50")
 
-    catalog = [
-        GLAccount(account_id="6170", label="Travel and transport", category="fuel"),
-        GLAccount(account_id="6190", label="Miscellaneous operating expenses", category="other"),
-    ]
+    catalog = get_northstar_gl_catalog()
     valid_suggestion = provider.suggest_gl(
         document=receipt_review.document,
         catalog=catalog,
@@ -283,10 +280,7 @@ def _live_check() -> None:
     )
     assert multipage_review.document.source.page_count == 2
 
-    catalog = [
-        GLAccount(account_id="6170", label="Travel and transport", category="fuel"),
-        GLAccount(account_id="6190", label="Miscellaneous operating expenses", category="other"),
-    ]
+    catalog = get_northstar_gl_catalog()
     suggestion = provider.suggest_gl(document=receipt_review.document, catalog=catalog)
     assert suggestion.suggestion is None or suggestion.suggestion.account_id in {
         account.account_id for account in catalog

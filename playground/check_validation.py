@@ -5,7 +5,11 @@ from decimal import Decimal
 
 from check_document_types import load_manifest, normalized_document
 
-from app.accounting.models import GLSelectionValidation
+from app.accounting.catalog import (
+    NORTHSTAR_GL_CATALOG,
+    validate_gl_selection,
+)
+from app.accounting.models import GLReview, GLSelection, GLSelectionValidation, GLSuggestion
 from app.document_review.models import (
     DocumentIssue,
     EvidenceSource,
@@ -46,6 +50,35 @@ def _issue_codes(issues: list[DocumentIssue]) -> set[str]:
 
 
 def run_checks() -> None:
+    account_ids = tuple(account.account_id for account in NORTHSTAR_GL_CATALOG)
+    assert account_ids == ("6100", "6110", "6120", "6130", "6140", "6170")
+    assert len(account_ids) == len(set(account_ids))
+    assert {account.category for account in NORTHSTAR_GL_CATALOG} == {
+        "cleaning",
+        "maintenance",
+        "electrical",
+        "plumbing",
+        "equipment",
+        "fuel",
+    }
+    valid_selection = validate_gl_selection("6100")
+    assert valid_selection.valid
+    assert not validate_gl_selection(None).valid
+    assert not validate_gl_selection("").valid
+    assert not validate_gl_selection("9999").valid
+
+    overridden_review = GLReview(
+        suggestion=GLSuggestion(
+            account_id="6100",
+            rationale="Cleaning supplier suggestion.",
+            confidence=Decimal("0.90"),
+        ),
+        selection=GLSelection(account_id="6170"),
+        validation=validate_gl_selection("6170"),
+    )
+    assert overridden_review.suggestion.account_id != overridden_review.selection.account_id
+    assert overridden_review.validation.valid
+
     documents = load_manifest()
     invoice = normalized_document(documents[0])
     receipt = normalized_document(documents[-1])

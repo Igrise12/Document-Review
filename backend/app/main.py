@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.invoices.repository import InvoiceReviewRepository
+from app.invoices.routes import router as invoice_router
 from app.invoices.storage import LocalFileStorage
 
 
@@ -22,6 +23,7 @@ def create_app() -> FastAPI:
     app.state.settings = settings
     app.state.repository = repository
     app.state.storage = storage
+    app.include_router(invoice_router)
 
     @app.get("/health")
     def health() -> dict[str, str]:

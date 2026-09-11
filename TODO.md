@@ -231,15 +231,15 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ## 8. Build the fixed Northstar GL catalog
 
-- [ ] Define a small fixed catalog for Northstar's facilities-management purchasing and expense categories.
-- [ ] Cover the brief's supplier areas: cleaning, maintenance, electrical, plumbing, and equipment.
-- [ ] Cover the fuel receipt scenario and any other receipt categories needed by the fictional corpus.
-- [ ] Give every account a stable ID and human-readable label.
-- [ ] Keep the catalog and selection validation in `backend/app/accounting/`.
-- [ ] Expose catalog entries to the UI through a backend endpoint or review payload.
-- [ ] Validate selected IDs against the fixed catalog on the server.
-- [ ] Allow Maya to override the local VLM suggestion.
-- [ ] Store both the suggestion and the final human selection.
+- [x] Define a small fixed catalog for Northstar's facilities-management purchasing and expense categories.
+- [x] Cover the brief's supplier areas: cleaning, maintenance, electrical, plumbing, and equipment.
+- [x] Cover the fuel receipt scenario and any other receipt categories needed by the fictional corpus.
+- [x] Give every account a stable ID and human-readable label.
+- [x] Keep the catalog and selection validation in `backend/app/accounting/`.
+- [x] Expose catalog entries to the UI through a backend endpoint or review payload.
+- [x] Validate selected IDs against the fixed catalog on the server.
+- [x] Allow Maya to override the local VLM suggestion.
+- [x] Store both the suggestion and the final human selection.
 
 ## 9. Orchestrate the review workflow
 

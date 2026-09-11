@@ -5,7 +5,8 @@ from tempfile import TemporaryDirectory
 
 from pydantic import ValidationError
 
-from app.accounting.models import GLReview, GLSuggestion
+from app.accounting.catalog import validate_gl_selection
+from app.accounting.models import GLReview, GLSelection, GLSuggestion
 from app.config import Settings
 from app.document_review.models import (
     CurrencyCode,
@@ -121,7 +122,9 @@ def run_checks() -> None:
                     account_id="6100",
                     rationale="Facilities cleaning supplier.",
                     confidence=Decimal("0.90"),
-                )
+                ),
+                selection=GLSelection(account_id="6170"),
+                validation=validate_gl_selection("6170"),
             )
             provider_run = ProviderRunMetadata(
                 provider="fictional-provider",
@@ -149,6 +152,9 @@ def run_checks() -> None:
             assert ready.normalized is not None
             assert ready.evidence is not None
             assert ready.gl_review is not None
+            assert ready.gl_review["suggestion"]["account_id"] == "6100"
+            assert ready.gl_review["selection"]["account_id"] == "6170"
+            assert ready.gl_review["validation"]["valid"] is True
             assert len(repository.find_by_duplicate_key("fr61954506077|en-2026-1001")) == 1
 
             approved = repository.update_state(

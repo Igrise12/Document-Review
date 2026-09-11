@@ -4,7 +4,7 @@ from app.document_review.models import Probability, ProviderRunMetadata
 
 
 class GLAccount(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
     account_id: str = Field(min_length=1)
     label: str = Field(min_length=1)

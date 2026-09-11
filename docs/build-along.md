@@ -317,3 +317,49 @@ suite.
 
 Checkpoint: deterministic policy and human approval eligibility are ready for
 the GL catalog and workflow orchestration stages.
+
+## Stage 8 checkpoint — fixed Northstar GL catalog
+
+Stage 8 adds the fixed Northstar GL catalog under `backend/app/accounting/`. It
+contains six immutable accounts covering cleaning, maintenance, electrical,
+plumbing, equipment, and fuel. Stable IDs keep provider suggestions and human
+selections comparable across reviews; the catalog is application policy, not
+model output, environment configuration, or database data.
+
+`validate_gl_selection()` accepts only an exact catalog ID and returns the
+provider-independent `GLSelectionValidation` result for the approval gate.
+Missing and unknown IDs are invalid with a user-facing reason. The read-only
+`GET /gl-catalog` endpoint exposes the same fixed entries to the future review
+UI without calling a provider or accepting account definitions from the
+client. Existing `GLReview` persistence stores a VLM suggestion and a distinct
+human selection, so Maya can override the suggestion without changing the
+catalog.
+
+No dependency or database schema change is needed. The Qwen smoke check now
+passes the actual Northstar catalog rather than a script-local catalog.
+
+Run the stage 8 checks with the locked backend environment:
+
+```bash
+cd backend
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_validation.py
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_persistence.py
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_qwen.py
+uv run --locked --no-sync ruff check app ../playground
+```
+
+The observable result includes clean validation, persistence, and Qwen smoke
+checks. To inspect the HTTP contract locally:
+
+```bash
+uv run --locked --no-sync uvicorn app.main:create_app --factory --port 18000
+curl http://localhost:18000/gl-catalog
+```
+
+The response is a six-entry JSON array in stable catalog order. The review
+selection action and UI control remain part of the later API and React stages;
+this checkpoint supplies their fixed policy boundary.
+
+Checkpoint: the fixed account catalog, server-side selection validation,
+provider catalog input, and suggestion/selection persistence are ready for
+workflow orchestration.
