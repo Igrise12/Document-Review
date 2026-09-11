@@ -14,7 +14,7 @@ This is not a Next.js application. Do not introduce Next.js, SSR, server compone
 
 ## Layout
 
-The current checkpoint contains a single React developer harness. Keep the interface small and add application components only when a real workflow slice needs them:
+The application is a single React review workflow. Keep the interface small and add application components only when a real workflow slice needs them:
 
 ```text
 frontend/
@@ -34,6 +34,13 @@ frontend/
 
 Do not create route, state, form, or component frameworks before the workflow needs them.
 
+## Design system
+
+- Use the checked-in shadcn/ui configuration in `components.json`. Its source-owned primitives live in `src/components/ui/`; application workflow components stay directly under `src/components/`.
+- Use the `@/*` alias rather than relative imports that climb across the source tree. Keep shadcn's neutral CSS-variable tokens in `src/index.css`; do not add another component or styling system.
+- Add a shadcn primitive only when the working slice renders it. Current Stage 11 primitives are Button, Input, Label, Card, Badge, Alert, Alert Dialog, Dialog, Select, Separator, Skeleton, Table, Textarea, and Tooltip.
+- Keep the review decision legible: show the original document beside the extracted review on desktop and stack the panels on smaller screens. Do not turn the local workflow into a dashboard.
+
 ## Code style
 
 - Keep TypeScript strict. Prefer `unknown` plus narrowing over `any`.
@@ -44,6 +51,7 @@ Do not create route, state, form, or component frameworks before the workflow ne
 - Keep provider and API response shapes behind types in `src/lib`. Components should consume application-facing types.
 - Use Tailwind classes and the shared global stylesheet. Do not add CSS modules, styled-components, Emotion, or another styling system.
 - Make loading, provider failure, validation issues, review state, and destructive actions visible to the user.
+- Send operational console logs only through `src/lib/logger.ts`. Log operation names, status codes, durations, safe outcomes, and API error codes; never log filenames, upload bytes, object URLs, invoice/receipt values, VAT IDs, totals, drafts, provider payloads, credentials, or raw response bodies.
 - Do not add authentication, routing, analytics, or global state unless the user story changes.
 
 ## Configuration
@@ -64,7 +72,7 @@ Do not create route, state, form, or component frameworks before the workflow ne
 
 ## Verification
 
-Verify the current harness with:
+Verify the frontend with:
 
 ```bash
 pnpm install --frozen-lockfile
@@ -73,7 +81,9 @@ pnpm lint
 pnpm build
 ```
 
-The harness uses `src/lib/api.ts` for the health request, browser `URL.createObjectURL` for local PDF/image preview, and revokes object URLs when the selected file changes or the component unmounts. It has no upload/process endpoint yet and must not invent extraction, confidence, or approval results.
+Use browser `URL.createObjectURL` for local and fetched-original preview, and revoke object URLs when the selected document changes or the component unmounts. Never invent extraction, confidence, conflicts, or approval results; render only API data.
+
+Stage 11 uses the existing FastAPI review contract through `src/lib/api.ts`: upload, process, review history/detail/original, GL selection, approval, rejection, correction request/draft, and deletion. Preserve the API's server-controlled approval gate and its no-send correction-draft behavior.
 
 As implementation is added, keep all documented frontend checks green:
 
@@ -84,5 +94,7 @@ pnpm build
 ```
 
 Complete verification includes a manual browser walkthrough of the full upload, processing, review, correction, decision, history, and deletion workflow.
+
+For the Stage 11 interface, also inspect the browser console: structured events must be present for API outcomes, validation, review actions, and clipboard copy results, while sensitive document data remains absent.
 
 Do not add Vitest, Jest, Playwright, Cypress, `*.test.*`, or another automated frontend test setup. This weekly teaching project uses strict typing, linting, production builds, and manual browser verification as defined by the root instructions.

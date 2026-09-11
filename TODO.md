@@ -272,47 +272,47 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ### Welcome and upload
 
-- [ ] Replace the starter screen with a guided welcome state explaining the Northstar workflow.
-- [ ] Add a single-file upload control with PDF/PNG/JPEG and 4 MB guidance.
-- [ ] Show client-side validation errors before upload and server-side errors after upload.
-- [ ] Show a preview of the original uploaded document before processing.
+- [x] Replace the starter screen with a guided welcome state explaining the Northstar workflow.
+- [x] Add a single-file upload control with PDF/PNG/JPEG and 4 MB guidance.
+- [x] Show client-side validation errors before upload and server-side errors after upload.
+- [x] Show a preview of the original uploaded document before processing.
 
 ### Processing
 
-- [ ] Show a clear processing state while the primary parser, VLM review, merge, validation, and GL suggestion run.
-- [ ] Make provider failure and incomplete-result states understandable and recoverable.
-- [ ] Do not imply that an external email, VIES lookup, or background worker ran.
+- [x] Show a clear processing state while the primary parser, VLM review, merge, validation, and GL suggestion run.
+- [x] Make provider failure and incomplete-result states understandable and recoverable.
+- [x] Do not imply that an external email, VIES lookup, or background worker ran.
 
 ### Review
 
-- [ ] Show invoice and receipt fields with document-type-specific labels.
-- [ ] Show supplier/customer information, IDs, dates, PO, currency, and totals for invoices.
-- [ ] Show merchant, transaction date, expense category, subtotal, VAT, and total for receipts.
-- [ ] Show field provenance and confidence, including primary, VLM fallback, and conflict states.
-- [ ] Make conflicts visible with both candidate values and enough evidence context for Maya to decide.
-- [ ] Show blocking errors separately from warnings and explain the action needed.
-- [ ] Show the original document beside or alongside the extracted review where the layout permits.
-- [ ] Add a fixed-catalog GL selector, clearly marking the VLM suggestion and allowing an override.
-- [ ] Disable approval until policy errors are resolved and a valid GL account is selected.
-- [ ] Provide approve and reject actions with clear confirmation/state feedback.
-- [ ] Provide a request-correction action that opens the draft flow.
+- [x] Show invoice and receipt fields with document-type-specific labels.
+- [x] Show supplier/customer information, IDs, dates, PO, currency, and totals for invoices.
+- [x] Show merchant, transaction date, expense category, subtotal, VAT, and total for receipts.
+- [x] Show field provenance and confidence, including primary, VLM fallback, and conflict states.
+- [x] Make conflicts visible with both candidate values and enough evidence context for Maya to decide.
+- [x] Show blocking errors separately from warnings and explain the action needed.
+- [x] Show the original document beside or alongside the extracted review where the layout permits.
+- [x] Add a fixed-catalog GL selector, clearly marking the VLM suggestion and allowing an override.
+- [x] Disable approval until policy errors are resolved and a valid GL account is selected.
+- [x] Provide approve and reject actions with clear confirmation/state feedback.
+- [x] Provide a request-correction action that opens the draft flow.
 
 ### Correction draft and history
 
-- [ ] Generate the correction draft only when requested.
-- [ ] Show the draft in a modal/panel with Copy and Close actions.
-- [ ] Use the browser clipboard API for Copy and show success/failure feedback.
-- [ ] Make it explicit that the app never sends the draft.
-- [ ] Add review history with statuses and enough summary data to reopen a review.
-- [ ] Add explicit delete confirmation and refresh the history after deletion.
-- [ ] Make it possible to upload the same fictional invoice again after deletion.
+- [x] Generate the correction draft only when requested.
+- [x] Show the draft in a modal/panel with Copy and Close actions.
+- [x] Use the browser clipboard API for Copy and show success/failure feedback.
+- [x] Make it explicit that the app never sends the draft.
+- [x] Add review history with statuses and enough summary data to reopen a review.
+- [x] Add explicit delete confirmation and refresh the history after deletion.
+- [x] Make it possible to upload the same fictional invoice again after deletion.
 
 ### Frontend quality
 
-- [ ] Keep TypeScript strict and route all environment access through `frontend/src/lib/env.ts`.
-- [ ] Use semantic controls, labels, keyboard navigation, visible focus, readable error states, and accessible status announcements.
-- [ ] Cover empty, uploading, processing, ready, blocked, warning-only, approved, rejected, correction-requested, failed, and deleted/reloaded states.
-- [ ] Keep the UI focused on the review decision; do not add dashboards or unrelated settings.
+- [x] Keep TypeScript strict and route all environment access through `frontend/src/lib/env.ts`.
+- [x] Use semantic controls, labels, keyboard navigation, visible focus, readable error states, and accessible status announcements.
+- [x] Cover empty, uploading, processing, ready, blocked, warning-only, approved, rejected, correction-requested, failed, and deleted/reloaded states.
+- [x] Keep the UI focused on the review decision; do not add dashboards or unrelated settings.
 
 ## 12. Evaluate the fictional corpus
 

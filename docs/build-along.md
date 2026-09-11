@@ -482,3 +482,59 @@ consistent errors, and stored-file deletion.
 Checkpoint: the backend contract required by the Stage 11 React experience is
 complete and verified; the current React checkpoint remains unchanged until
 that next slice.
+
+## Stage 11 checkpoint — React review experience and console logging
+
+Completed on 2026-09-11. The Stage 6 harness is replaced with Maya's complete
+local review surface: select and preview one supported document, upload it,
+run the synchronous local pipeline, inspect the original beside the normalized
+review, choose or override the GL account, decide, create a no-send correction
+draft, reopen history, and explicitly delete a local review so the sample can
+be uploaded again.
+
+The implementation uses checked-in shadcn/ui source primitives rather than a
+second UI framework. `components.json`, the `@/*` alias, neutral semantic CSS
+tokens, and the selected primitives make the system inspectable and reusable
+while keeping application workflow components focused. The desktop view pairs
+the original document with the review decision; mobile stacks those panels.
+
+`src/lib/api.ts` is the single typed HTTP boundary. It converts the existing
+handled API error shape into a safe UI error, uses browser `FormData`, fetches
+the original only when a history review is opened, and keeps approval under the
+server's existing gate. `src/lib/logger.ts` emits structured browser-console
+events for operation results, safe error codes, validation, actions, and
+clipboard outcomes. It deliberately excludes filenames, document contents,
+financial values, VAT IDs, drafts, preview URLs, provider payloads, and
+credentials.
+
+The added direct dependencies are pinned exactly in `frontend/package.json`
+and `frontend/pnpm-lock.yaml`: Radix Alert Dialog, Dialog, Select, Separator,
+Slot, and Tooltip; `class-variance-authority`, `clsx`, `tailwind-merge`, and
+`tw-animate-css`; plus `lucide-react@1.40.0`. The originally proposed
+`lucide-react@1.45.0` was published within the required seven-day release
+cooldown, so pnpm rejected it and the mature 1.40.0 release was used instead.
+No cooldown exception, router, state manager, form library, HTTP wrapper,
+analytics, remote error service, or automated test suite was added.
+
+Run the locked frontend verification:
+
+```bash
+cd frontend
+pnpm install --frozen-lockfile
+pnpm exec tsc -b --pretty false
+pnpm lint
+pnpm build
+```
+
+The observable result is a clean type check and lint run followed by a Vite
+production bundle. In the browser, the welcome/upload state, empty history,
+backend-unavailable recovery state, and redacted structured console events are
+visible without a provider request. With the standard local API and provider
+setup running, walk through upload/preview, ready and failed processing,
+invoice and receipt review, conflict/provenance, GL override and approval,
+rejection, correction draft generation/copy/close, history reopening, and
+deletion/re-upload. The app never sends the correction draft or claims a live
+VIES lookup or background worker.
+
+Checkpoint: the frontend now consumes the complete Stage 10 API contract with
+accessible local review controls and console-only, redacted frontend logging.
