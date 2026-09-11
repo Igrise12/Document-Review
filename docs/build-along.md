@@ -273,3 +273,47 @@ The observable result is `PASS: normalization, merge precedence, provenance, con
 The React surface is now named “Normalize & merge checkpoint”. It keeps the health request, one-file validation, and local PDF/image preview while showing the six checkpoints with Stage 6 active. It intentionally does not simulate extracted fields, confidence, conflicts, approval, or processing because the upload/process API is still a later stage.
 
 Checkpoint: deterministic merge behavior and multi-page provenance are verified independently, while the React harness accurately represents the current backend boundary.
+
+## Stage 7 checkpoint — deterministic VAT and finance validation
+
+Stage 7 adds `backend/app/invoices/validation.py`, a pure policy module with no
+HTTP, SQLite, provider, or VIES dependency. It validates EU VAT IDs locally with
+the already locked `python-stdnum==2.2` package, while preserving the original
+review-friendly VAT display value. The fixed Northstar customer VAT ID,
+`NL00449544B01`, the EUR 0.01 reconciliation tolerance, and the 0.80 primary
+confidence threshold remain immutable tutorial policy rather than environment
+settings.
+
+Invoice and receipt requirements are intentionally separate. The invoice policy
+returns blocking errors for required identity, VAT, money, date, and duplicate
+conditions, and warnings for a missing purchase order or each low-confidence
+primary field. The receipt policy requires only its receipt-specific fields and
+reconciles subtotal, VAT, and total when all three are present. A duplicate key
+is built only from a valid canonical supplier VAT ID and invoice number; later
+orchestration will query SQLite and pass the result into this pure module.
+`approval_allowed` permits a human approval only when no blocking issue remains
+and the catalog layer has supplied a valid selected GL account. It does not
+change a review state or select an account.
+
+Run the self-check and lint with the locked environment:
+
+```bash
+cd backend
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/check_validation.py
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync ruff check app ../playground
+```
+
+The observable self-check result is:
+
+```text
+PASS: offline EU VAT, invoice and receipt policy, duplicate keys, and approval checks
+```
+
+The check uses only fictional corpus metadata and in-memory Pydantic models. It
+does not call a local model, send email, query VIES, or create a committed test
+suite.
+
+Checkpoint: deterministic policy and human approval eligibility are ready for
+the GL catalog and workflow orchestration stages.

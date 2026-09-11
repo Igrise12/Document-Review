@@ -183,51 +183,51 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ### VAT checks
 
-- [ ] Add local EU VAT structure and checksum validation with the approved `python-stdnum` dependency.
-- [ ] Normalize country prefixes and spacing before validation while retaining a review-friendly display value.
-- [ ] Validate supplier VAT IDs for invoices and distinguish missing from malformed/invalid values.
-- [ ] Require the Northstar customer VAT ID on invoices and flag a missing or mismatched value.
-- [ ] Do not make a live VIES registration claim or add a VIES network dependency.
-- [ ] Reconcile receipt VAT and totals locally when the necessary values are present.
+- [x] Add local EU VAT structure and checksum validation with the approved `python-stdnum` dependency.
+- [x] Normalize country prefixes and spacing before validation while retaining a review-friendly display value.
+- [x] Validate supplier VAT IDs for invoices and distinguish missing from malformed/invalid values.
+- [x] Require the Northstar customer VAT ID on invoices and flag a missing or mismatched value.
+- [x] Do not make a live VIES registration claim or add a VIES network dependency.
+- [x] Reconcile receipt VAT and totals locally when the necessary values are present.
 
 ### Invoice policy
 
-- [ ] Make the invoice policy a pure function in `backend/app/invoices/validation.py`.
-- [ ] Produce blocking errors for:
-  - [ ] missing vendor identity;
-  - [ ] missing vendor VAT ID;
-  - [ ] malformed/invalid vendor VAT ID;
-  - [ ] missing customer identity;
-  - [ ] missing customer VAT ID;
-  - [ ] mismatched customer VAT ID;
-  - [ ] missing invoice number;
-  - [ ] missing invoice date;
-  - [ ] missing invoice total;
-  - [ ] missing currency;
-  - [ ] non-positive total;
-  - [ ] invalid invoice/due-date order;
-  - [ ] total mismatch greater than EUR 0.01;
-  - [ ] duplicate vendor/invoice key.
-- [ ] Produce warnings for missing purchase order and primary-extraction confidence below `0.80`.
-- [ ] Keep the EUR 0.01 tolerance deterministic and use exact decimal arithmetic.
+- [x] Make the invoice policy a pure function in `backend/app/invoices/validation.py`.
+- [x] Produce blocking errors for:
+  - [x] missing vendor identity;
+  - [x] missing vendor VAT ID;
+  - [x] malformed/invalid vendor VAT ID;
+  - [x] missing customer identity;
+  - [x] missing customer VAT ID;
+  - [x] mismatched customer VAT ID;
+  - [x] missing invoice number;
+  - [x] missing invoice date;
+  - [x] missing invoice total;
+  - [x] missing currency;
+  - [x] non-positive total;
+  - [x] invalid invoice/due-date order;
+  - [x] total mismatch greater than EUR 0.01;
+  - [x] duplicate vendor/invoice key.
+- [x] Produce warnings for missing purchase order and primary-extraction confidence below `0.80`.
+- [x] Keep the EUR 0.01 tolerance deterministic and use exact decimal arithmetic.
 
 ### Receipt policy
 
-- [ ] Make the receipt policy separate from the invoice policy and keep it pure.
-- [ ] Require merchant, transaction date, currency, positive total, and VAT total.
-- [ ] Do not require invoice number, customer VAT, purchase order, or due date for receipts.
-- [ ] When subtotal and VAT are present, require reconciliation to total within EUR 0.01.
-- [ ] Turn low primary confidence into a warning.
-- [ ] Define the receipt expense category as review data and ensure it does not bypass GL selection validation.
+- [x] Make the receipt policy separate from the invoice policy and keep it pure.
+- [x] Require merchant, transaction date, currency, positive total, and VAT total.
+- [x] Do not require invoice number, customer VAT, purchase order, or due date for receipts.
+- [x] When subtotal and VAT are present, require reconciliation to total within EUR 0.01.
+- [x] Turn low primary confidence into a warning.
+- [x] Define the receipt expense category as review data and ensure it does not bypass GL selection validation.
 
 ### Approval gate
 
-- [ ] Combine deterministic document issues with GL selection validation into one approval decision.
-- [ ] Disable/deny approval when any blocking issue remains.
-- [ ] Require a valid selected Northstar GL account even when extraction and policy checks pass.
-- [ ] Allow warnings to remain visible without blocking approval.
-- [ ] Ensure approval is a human action after the evidence and uncertainty are visible.
-- [ ] Add an assert-based self-check covering the invoice and receipt policy edge cases without introducing a test suite.
+- [x] Combine deterministic document issues with GL selection validation into one approval decision.
+- [x] Disable/deny approval when any blocking issue remains.
+- [x] Require a valid selected Northstar GL account even when extraction and policy checks pass.
+- [x] Allow warnings to remain visible without blocking approval.
+- [x] Ensure approval is a human action after the evidence and uncertainty are visible.
+- [x] Add an assert-based self-check covering the invoice and receipt policy edge cases without introducing a test suite.
 
 ## 8. Build the fixed Northstar GL catalog
 
