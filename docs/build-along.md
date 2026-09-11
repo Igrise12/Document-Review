@@ -363,3 +363,53 @@ this checkpoint supplies their fixed policy boundary.
 Checkpoint: the fixed account catalog, server-side selection validation,
 provider catalog input, and suggestion/selection persistence are ready for
 workflow orchestration.
+
+## Stage 9 checkpoint — synchronous review orchestration
+
+Completed on 2026-09-11. `backend/app/invoices/service.py` now owns the
+single-document workflow that was previously spread across future route and
+provider boundaries. Upload first validates and stores the original bytes, then
+processing moves the review through classification, primary PaddleOCR parsing,
+document-type reconciliation, independent Qwen review of the original file,
+deterministic merge, offline policy validation, GL suggestion, and SQLite
+persistence.
+
+The service receives provider instances explicitly, so the workflow is
+testable without a live model and `/health` remains free of PaddleOCR model
+initialization. Qwen classification must agree with the primary parser before
+the review path continues. A disagreement or any provider failure produces a
+retryable `failed` review. When safe, primary or merged fields, evidence,
+issues, duplicate keys, and provider metadata remain available as partial data;
+partial data can never become an approval-ready review.
+
+The repository processing write now accepts nullable page counts and an
+optional failure message, allowing the same persistence path to clear stale
+payloads at retry start and retain actionable failed results. No provider
+response body, upload content, credential, or full document text is logged or
+stored as a failure message.
+
+Run the offline service check and backend lint:
+
+```bash
+cd backend
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  PYTHONPATH=. uv run --locked --no-sync python ../playground/check_service.py
+UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync ruff check app ../playground
+```
+
+The observable result is:
+
+```text
+PASS: service order, partial failures, retry state, and upload cleanup
+```
+
+The check uses fictional PDF bytes and fake provider objects. It verifies the
+provider call order, primary/VLM fallback, policy warning persistence,
+classification conflict handling, GL-provider failure handling, and cleanup
+when database upload creation fails. It does not call PaddleOCR, Qwen, or any
+network endpoint.
+
+Checkpoint: the local review pipeline has one explicit synchronous orchestration
+boundary and a recoverable persistence contract; FastAPI endpoints and the
+React review experience remain stage 10 and later.

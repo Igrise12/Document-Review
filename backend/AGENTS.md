@@ -24,7 +24,7 @@ backend/
 ├── app/
 │   ├── main.py              # FastAPI construction and dependency wiring
 │   ├── config.py            # Provider settings and fixed application config
-│   ├── invoices/            # HTTP, orchestration, persistence, and policy by module
+│   ├── invoices/            # HTTP, service orchestration, persistence, and policy by module
 │   ├── accounting/          # Fixed GL catalog and validated selections
 │   ├── document_review/     # Provider-independent review, normalization, and reconciliation
 │   ├── correction_email/    # Eligibility and provider-independent draft models
@@ -49,6 +49,16 @@ Do not create empty architectural layers before the tutorial reaches them.
 - Validate files, HTTP input, provider output, and database writes at their boundaries. Do not repeatedly validate trusted internal calls.
 - PaddleOCR parsing and SQLite access are synchronous. Keep parser execution out of `/health`; the health route must not instantiate a model or download weights. Use normal FastAPI `def` handlers for synchronous request paths instead of blocking an async event loop.
 - Do not add auth, queues, workers, caching, analytics, deployment code, or accounting integrations unless the user story changes.
+
+## Stage 9 workflow
+
+- `backend/app/invoices/service.py` owns the synchronous single-document workflow. Construct it with the repository, local file storage, primary parser, and VLM provider; keep routes as callers, not orchestrators.
+- `upload_document()` validates and stores the original before creating the uploaded review record. If record creation fails, remove the newly stored file.
+- `process_review()` accepts only `uploaded` or retryable `failed` reviews, clears stale processing payloads, and runs: classification → primary parse → type reconciliation → original-document VLM review → deterministic merge → policy validation → GL suggestion → persistence.
+- Require Qwen classification and PaddleOCR document types to agree before VLM extraction. A disagreement becomes the blocking `document_type_conflict` issue and a recoverable `failed` review.
+- Persist safe partial normalized data, evidence, issues, and provider metadata when a later provider fails. A partial result stays `failed`; only the complete pipeline becomes `ready_for_review`. GL suggestion failure also remains retryable `failed`.
+- Keep provider run metadata structured and omit uploaded content, secrets, and full document text from logs and failure messages.
+- Keep provider construction off `/health`; do not load PaddleOCR or contact Qwen during app construction or health checks.
 
 ## Configuration
 
@@ -78,6 +88,7 @@ uv sync --locked
 PYTHONPATH=. uv run --locked --no-sync python ../playground/check_paddleocr.py
 PYTHONPATH=. uv run --locked --no-sync python ../playground/check_qwen.py
 PYTHONPATH=. uv run --locked --no-sync python ../playground/check_reconciliation.py
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_service.py
 uv run --locked --no-sync ruff check app ../playground
 ```
 

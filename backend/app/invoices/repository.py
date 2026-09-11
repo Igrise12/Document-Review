@@ -225,8 +225,9 @@ class InvoiceReviewRepository:
         gl_review: GLReview | None,
         provider_runs: object | None,
         duplicate_key: str | None,
-        page_count: int,
+        page_count: int | None,
         processed_at: datetime | None = None,
+        failure_message: str | None = None,
     ) -> ReviewSnapshot:
         self._validate_page_count(page_count)
         if duplicate_key is not None and not duplicate_key.strip():
@@ -245,7 +246,7 @@ class InvoiceReviewRepository:
                 review.provider_runs_json = _serialize_payload(provider_runs)
                 review.duplicate_key = duplicate_key
                 review.processed_at = _utc_iso(processed_at) if processed_at else None
-                review.failure_message = None
+                review.failure_message = failure_message
                 review.updated_at = _utc_iso()
                 document.page_count = page_count
                 session.commit()

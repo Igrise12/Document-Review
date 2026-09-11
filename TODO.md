@@ -134,7 +134,7 @@ This checklist turns the client brief, target architecture, local-provider decis
 - [x] Add a small structured Qwen classifier for the original upload that reuses `DocumentType` and returns the document kind, bounded confidence, and concise reasoning.
 - [x] Validate the classifier response with Pydantic before routing invoice/receipt review or extraction.
 - [x] Keep classification separate from VAT, finance policy, GL selection, and approval decisions; record its provider/model metadata.
-- [ ] Keep the PaddleOCR marker-based classifier as an explicit diagnostic/fallback path and surface disagreements instead of silently changing the document type.
+- [x] Keep the PaddleOCR marker-based classifier as an explicit diagnostic/fallback path and surface disagreements instead of silently changing the document type.
 
 ### Document review and extraction
 
@@ -243,13 +243,13 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ## 9. Orchestrate the review workflow
 
-- [ ] Add `service.py` to orchestrate upload, provider calls, normalization, merge, validation, GL suggestion, and persistence.
-- [ ] Keep the orchestration synchronous and local; do not introduce queues, workers, or batch processing.
-- [ ] Define the order clearly: save original → document classification → primary parse → independent VLM review → deterministic merge → policy checks → GL suggestion → persist review.
-- [ ] Ensure provider failures produce a recoverable failed state and an actionable user-facing message.
-- [ ] Keep partial provider results available when safe, without presenting an incomplete review as approved.
-- [ ] Avoid logging uploaded content, provider secrets, or full sensitive document text unnecessarily.
-- [ ] Ensure repeated processing after explicit deletion starts from a clean review record.
+- [x] Add `service.py` to orchestrate upload, provider calls, normalization, merge, validation, GL suggestion, and persistence.
+- [x] Keep the orchestration synchronous and local; do not introduce queues, workers, or batch processing.
+- [x] Define the order clearly: save original → document classification → primary parse → independent VLM review → deterministic merge → policy checks → GL suggestion → persist review.
+- [x] Ensure provider failures produce a recoverable failed state and an actionable user-facing message.
+- [x] Keep partial provider results available when safe, without presenting an incomplete review as approved.
+- [x] Avoid logging uploaded content, provider secrets, or full sensitive document text unnecessarily.
+- [x] Ensure repeated processing after explicit deletion starts from a clean review record.
 
 ## 10. Expose the minimal FastAPI API
 
