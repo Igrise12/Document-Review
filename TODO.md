@@ -316,33 +316,33 @@ This checklist turns the client brief, target architecture, local-provider decis
 
 ## 12. Evaluate the fictional corpus
 
-- [ ] Treat `samples/manifest.json` as the source of expected normalized fields and issue codes.
-- [ ] Verify the corpus remains 13 documents and 14 pages: 12 invoices plus one Dutch fuel receipt.
-- [ ] Create/update an explicit evaluator script that continues after an individual provider failure and reports per-document results.
-- [ ] Compare normalized values rather than only raw OCR text.
-- [ ] Evaluate provider invoice/receipt classification, including confidence, disagreements, and failure behavior; do not treat manifest labels alone as provider classification.
+- [x] Treat `samples/manifest.json` as the source of expected normalized fields and issue codes.
+- [x] Verify the corpus remains 13 documents and 14 pages: 12 invoices plus one Dutch fuel receipt.
+- [x] Create/update an explicit evaluator script that continues after an individual provider failure and reports per-document results.
+- [x] Compare normalized values rather than only raw OCR text.
+- [x] Evaluate provider invoice/receipt classification, including confidence, disagreements, and failure behavior; do not treat manifest labels alone as provider classification.
 - [x] Add a playground Pydantic smoke check for the golden corpus's invoice/receipt labels; this does not replace provider classification.
-- [ ] Evaluate supplier/customer names and VAT IDs.
-- [ ] Evaluate invoice/transaction dates, due date, invoice number, PO, currency, subtotal, VAT, and total.
-- [ ] Evaluate policy issue codes and approval/warning outcomes.
-- [ ] Evaluate provenance: primary fields, VLM fallbacks, conflicts, and primary confidence.
-- [ ] Evaluate GL suggestions against the fixed catalog without treating a suggestion as a final selection.
-- [ ] Cover the committed scenarios:
-  - [ ] `01-en-happy-classic.pdf`: English happy-path invoice.
-  - [ ] `02-nl-happy-compact.pdf`: Dutch happy-path invoice.
-  - [ ] `03-de-happy-modern.pdf`: German happy-path invoice.
-  - [ ] `04-fr-happy-classic.pdf`: French happy-path invoice.
-  - [ ] `05-nl-missing-vendor-vat.pdf`: missing supplier VAT blocking error.
-  - [ ] `06-de-invalid-vendor-vat.pdf`: invalid supplier VAT blocking error.
-  - [ ] `07-fr-wrong-customer-vat.pdf`: customer VAT mismatch blocking error.
-  - [ ] `08-en-total-mismatch.pdf`: invoice total mismatch blocking error.
-  - [ ] `09-nl-missing-po.pdf`: missing PO warning.
-  - [ ] `10-de-duplicate.pdf`: duplicate vendor/invoice blocking error.
-  - [ ] `11-fr-scan-quality.png`: scan-quality confidence warning behavior.
-  - [ ] `12-en-two-page.pdf`: multi-page invoice handling.
-  - [ ] `13-nl-fuel-receipt.png`: receipt-specific policy and fuel category handling.
-- [ ] Add a hybrid evaluator for representative documents to report primary fields, VLM fallbacks, conflicts, final status, and provider call counts.
-- [ ] Record machine, device, runtime, model name/version, prompt/schema versions, duration, and peak resource observations for comparisons.
+- [x] Evaluate supplier/customer names and VAT IDs.
+- [x] Evaluate invoice/transaction dates, due date, invoice number, PO, currency, subtotal, VAT, and total.
+- [x] Evaluate policy issue codes and approval/warning outcomes.
+- [x] Evaluate provenance: primary fields, VLM fallbacks, conflicts, and primary confidence.
+- [x] Evaluate GL suggestions against the fixed catalog without treating a suggestion as a final selection.
+- [x] Cover the committed scenarios:
+  - [x] `01-en-happy-classic.pdf`: English happy-path invoice.
+  - [x] `02-nl-happy-compact.pdf`: Dutch happy-path invoice.
+  - [x] `03-de-happy-modern.pdf`: German happy-path invoice.
+  - [x] `04-fr-happy-classic.pdf`: French happy-path invoice.
+  - [x] `05-nl-missing-vendor-vat.pdf`: missing supplier VAT blocking error.
+  - [x] `06-de-invalid-vendor-vat.pdf`: invalid supplier VAT blocking error.
+  - [x] `07-fr-wrong-customer-vat.pdf`: customer VAT mismatch blocking error.
+  - [x] `08-en-total-mismatch.pdf`: invoice total mismatch blocking error.
+  - [x] `09-nl-missing-po.pdf`: missing PO warning.
+  - [x] `10-de-duplicate.pdf`: duplicate vendor/invoice blocking error.
+  - [x] `11-fr-scan-quality.png`: scan-quality confidence warning behavior.
+  - [x] `12-en-two-page.pdf`: multi-page invoice handling.
+  - [x] `13-nl-fuel-receipt.png`: receipt-specific policy and fuel category handling.
+- [x] Add a hybrid evaluator for representative documents to report primary fields, VLM fallbacks, conflicts, final status, and provider call counts.
+- [x] Record machine, device, runtime, model name/version, prompt/schema versions, duration, and peak resource observations for comparisons.
 - [ ] Compare at least the approved PP-StructureV3/Qwen configuration and any proposed PaddleOCR-VL or newer Qwen configuration before changing defaults.
 - [ ] Check model licenses and transitive runtime licenses before any commercial deployment decision.
 - [ ] Do not add external/private documents or scraped data to the repository.

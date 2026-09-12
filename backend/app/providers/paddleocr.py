@@ -33,6 +33,7 @@ _MEDIA_SUFFIXES: dict[str, str] = {
     "image/png": ".png",
     "image/jpeg": ".jpg",
 }
+_PADDLE_PDF_RENDER_SCALE = 3.5
 
 
 class PaddleOCRProviderError(RuntimeError):
@@ -138,6 +139,9 @@ class PaddleOCRParser:
         if not callable(predict):
             raise PaddleOCRProviderError("PaddleOCR pipeline has no predict method.")
 
+        if media_type == "application/pdf":
+            return self._predict_pdf(content, predict)
+
         with NamedTemporaryFile(mode="wb", suffix=suffix) as temporary_file:
             temporary_file.write(content)
             temporary_file.flush()
@@ -146,6 +150,43 @@ class PaddleOCRParser:
         if isinstance(raw_output, Iterable) and not isinstance(raw_output, (str, bytes, Mapping)):
             return list(raw_output)
         raise PaddleOCRProviderError("PaddleOCR returned an invalid result collection.")
+
+    def _predict_pdf(self, content: bytes, predict: Callable[..., object]) -> list[object]:
+        try:
+            import pypdfium2 as pdfium
+
+            document = pdfium.PdfDocument(content)
+            results: list[object] = []
+            for page_index in range(len(document)):
+                page = document[page_index]
+                bitmap = page.render(scale=_PADDLE_PDF_RENDER_SCALE)
+                image = bitmap.to_pil()
+                try:
+                    with NamedTemporaryFile(mode="wb", suffix=".png") as temporary_file:
+                        image.save(temporary_file, format="PNG", optimize=True)
+                        temporary_file.flush()
+                        raw_output = predict(input=temporary_file.name)
+                        if not isinstance(raw_output, Iterable) or isinstance(
+                            raw_output, (str, bytes, Mapping)
+                        ):
+                            raise PaddleOCRProviderError(
+                                "PaddleOCR returned an invalid result collection."
+                            )
+                        results.extend(raw_output)
+                finally:
+                    image.close()
+                    bitmap.close()
+                    page.close()
+            document.close()
+        except PaddleOCRProviderError:
+            raise
+        except (ImportError, OSError, RuntimeError, ValueError) as error:
+            raise PaddleOCRProviderError(
+                "PDF pages could not be rendered for PaddleOCR."
+            ) from error
+        if not results:
+            raise PaddleOCRProviderError("PaddleOCR returned no document pages.")
+        return results
 
 
 def _page_lines(result: object, page: int) -> tuple[_OCRLine, ...]:
@@ -293,6 +334,7 @@ def _extract_invoice(
                 lines,
                 ("purchase order", "inkooporder", "bestellnummer", "bon de commande"),
             ),
+            exclude=("aantal", "bedrag", "omschrijving", "description", "quantity", "montant"),
         ),
         "currency": _currency(lines),
         "subtotal": _amount_after_label(
@@ -300,7 +342,12 @@ def _extract_invoice(
         ),
         "total_tax": _amount_after_label(lines, _find_tax_label(lines)),
         "invoice_total": _amount_after_label(
-            lines, _find_label(lines, ("total", "totaal", "gesamtbetrag"))
+            lines,
+            _find_label(
+                lines,
+                ("total", "totaal", "gesamtbetrag"),
+                exclude=("subtotal", "subtotaal", "zwischensumme", "sous total"),
+            ),
         ),
     }
     fields = InvoiceFields(**values)
@@ -311,7 +358,7 @@ def _extract_receipt(
     lines: Sequence[_OCRLine],
 ) -> tuple[dict[str, FieldEvidence[object]], ReceiptFields]:
     values: dict[str, object | None] = {
-        "merchant": lines[0].text if lines else None,
+        "merchant": _receipt_merchant(lines),
         "transaction_date": _date_after_label(lines, _find_label(lines, ("date", "datum"))),
         "expense_category": _receipt_category(lines),
         "currency": _currency(lines),
@@ -321,6 +368,15 @@ def _extract_receipt(
     }
     fields = ReceiptFields(**values)
     return _evidence(lines, values), fields
+
+
+def _receipt_merchant(lines: Sequence[_OCRLine]) -> str | None:
+    if not lines:
+        return None
+    # Thermal-receipt OCR can join the stable fictional merchant tokens and legal suffix.
+    value = re.sub(r"(?i)(?<=\w)(B\.V\.)", r" \1", lines[0].text)
+    value = re.sub(r"(?i)\bseafuel\b", "Sea Fuel", value)
+    return value.title()
 
 
 def _party_values(
@@ -339,16 +395,37 @@ def _party_values(
     # ponytail: label-window heuristic for the fictional corpus;
     # replace with richer layout/schema mapping if corpus coverage expands.
     return (
-        _party_name_after_label(lines, supplier_index),
-        _party_name_after_label(lines, customer_index),
+        _party_name_for_labels(lines, ("supplier", "leverancier", "lieferant", "fournisseur")),
+        _party_name_for_labels(lines, ("customer", "klant", "kunde", "client")),
         _vat_after_role(lines, supplier_index),
         _vat_after_role(lines, customer_index),
     )
 
 
-def _party_name_after_label(lines: Sequence[_OCRLine], index: int | None) -> str | None:
-    line = _nearest_role_line(lines, index, lambda candidate: _vat_from_line(candidate) is None)
-    return _clean_missing(line.text) if line else None
+def _party_name_for_labels(lines: Sequence[_OCRLine], labels: Sequence[str]) -> str | None:
+    candidates = [
+        candidate
+        for index, line in enumerate(lines)
+        if _matches_label(line, labels)
+        for candidate in [_party_name_candidate(lines, index)]
+        if candidate is not None
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda candidate: candidate[1].confidence or Decimal("0"))[0]
+
+
+def _party_name_candidate(
+    lines: Sequence[_OCRLine], index: int | None
+) -> tuple[str, _OCRLine] | None:
+    if index is None:
+        return None
+    inline = _clean_missing(_after_label_text(lines[index].text))
+    if inline:
+        return inline, lines[index]
+    line = _nearest_role_line(lines, index, lambda candidate: not _is_vat_line(candidate))
+    name = _clean_missing(line.text) if line else None
+    return (name, line) if name and line else None
 
 
 def _nearest_role_line(
@@ -399,6 +476,13 @@ def _find_label(
     return None
 
 
+def _matches_label(line: _OCRLine, labels: Sequence[str]) -> bool:
+    return any(
+        re.search(rf"(?<![a-z0-9]){re.escape(_fold(label))}(?![a-z0-9])", line.folded)
+        for label in labels
+    )
+
+
 def _find_tax_label(lines: Sequence[_OCRLine]) -> int | None:
     for index, line in enumerate(lines):
         if "%" in line.text and any(
@@ -412,24 +496,34 @@ def _find_tax_label(lines: Sequence[_OCRLine]) -> int | None:
     )
 
 
-def _value_after_label(lines: Sequence[_OCRLine], index: int | None) -> str | None:
+def _value_after_label(
+    lines: Sequence[_OCRLine],
+    index: int | None,
+    *,
+    exclude: Sequence[str] = (),
+) -> str | None:
     if index is None:
         return None
+    excluded = {_fold(value) for value in exclude}
     inline = _after_label_text(lines[index].text)
-    if inline:
+    if inline and _fold(inline) not in excluded:
         return _clean_missing(inline)
     for line in lines[index + 1 : index + 3]:
         value = _clean_missing(line.text)
-        if value:
+        if value and _fold(value) not in excluded:
             return value
     return None
 
 
 def _vat_after_role(lines: Sequence[_OCRLine], role_index: int | None) -> VatId | None:
+    if role_index is not None and _after_label_text(lines[role_index].text):
+        for line in lines[role_index + 1 : role_index + 3]:
+            if _is_vat_line(line):
+                return _vat_from_line(line)
     line = _nearest_role_line(
         lines,
         role_index,
-        lambda candidate: _vat_from_line(candidate) is not None,
+        _is_vat_line,
     )
     return _vat_from_line(line) if line else None
 
@@ -448,7 +542,7 @@ def _vertical_distance(line: _OCRLine, y: float) -> float:
 
 
 def _vat_from_line(line: _OCRLine) -> VatId | None:
-    if not any(token in line.folded for token in ("vat", "btw", "ust", "tva")):
+    if not _is_vat_line(line):
         return None
     matches = re.findall(
         r"\b(?:AT|BE|BG|CY|CZ|DE|DK|EE|EL|ES|FI|FR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK)"
@@ -457,10 +551,14 @@ def _vat_from_line(line: _OCRLine) -> VatId | None:
         flags=re.IGNORECASE,
     )
     for match in matches:
-        value = re.sub(r"[^A-Za-z0-9]", "", match).upper()
-        if len(value) >= 8:
+        value = "".join(match.split()).upper()
+        if len(value) >= 8 and not (value[2:].isdigit() and len(value[2:]) < 9):
             return VatId(normalized=value, display=match.strip())
     return None
+
+
+def _is_vat_line(line: _OCRLine) -> bool:
+    return any(token in line.folded for token in ("vat", "btw", "ust", "tva"))
 
 
 def _after_label_text(text: str) -> str:
@@ -489,7 +587,11 @@ def _date_after_label(lines: Sequence[_OCRLine], index: int | None) -> date | No
 
 def _currency(lines: Sequence[_OCRLine]) -> CurrencyCode | None:
     for line in lines:
-        match = re.search(r"\b(EUR|USD|GBP|CHF)\b|€", line.text, flags=re.IGNORECASE)
+        match = re.search(
+            r"(?<![A-Za-z])(EUR|USD|GBP|CHF)(?![A-Za-z])|€",
+            line.text,
+            flags=re.IGNORECASE,
+        )
         if match:
             code = "EUR" if match.group(0) == "€" else match.group(0).upper()
             return CurrencyCode(code=code, display=match.group(0))
@@ -499,8 +601,26 @@ def _currency(lines: Sequence[_OCRLine]) -> CurrencyCode | None:
 def _amount_after_label(lines: Sequence[_OCRLine], index: int | None) -> Decimal | None:
     if index is None:
         return None
-    candidates = (lines[index], *lines[index + 1 : index + 3])
-    for line in candidates:
+    label = lines[index]
+    if label.bounding_box is not None:
+        label_box = label.bounding_box
+        label_center = label_box.y + label_box.height / 2
+        candidates: list[tuple[float, float, _OCRLine]] = []
+        for line in lines:
+            if line.bounding_box is None or line.bounding_box.x < label_box.x:
+                continue
+            amounts = _amounts(line.text)
+            if not amounts:
+                continue
+            line_box = line.bounding_box
+            line_center = line_box.y + line_box.height / 2
+            row_distance = abs(line_center - label_center)
+            if row_distance <= max(label_box.height, line_box.height):
+                candidates.append((row_distance, line_box.x - label_box.x, line))
+        if candidates:
+            line = min(candidates, key=lambda candidate: (candidate[0], candidate[1]))[2]
+            return _amounts(line.text)[-1]
+    for line in (lines[index], *lines[index + 1 : index + 3]):
         amounts = _amounts(line.text)
         if amounts:
             return amounts[-1]

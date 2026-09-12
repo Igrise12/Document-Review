@@ -38,7 +38,7 @@ Do not create route, state, form, or component frameworks before the workflow ne
 
 - Use the checked-in shadcn/ui configuration in `components.json`. Its source-owned primitives live in `src/components/ui/`; application workflow components stay directly under `src/components/`.
 - Use the `@/*` alias rather than relative imports that climb across the source tree. Keep shadcn's neutral CSS-variable tokens in `src/index.css`; do not add another component or styling system.
-- Add a shadcn primitive only when the working slice renders it. Current Stage 11 primitives are Button, Input, Label, Card, Badge, Alert, Alert Dialog, Dialog, Select, Separator, Skeleton, Table, Textarea, and Tooltip.
+- Add a shadcn primitive only when the working slice renders it. Current primitives are Button, Input, Label, Card, Badge, Alert, Alert Dialog, Dialog, Select, Separator, Skeleton, Table, Textarea, and Tooltip.
 - Keep the review decision legible: show the original document beside the extracted review on desktop and stack the panels on smaller screens. Do not turn the local workflow into a dashboard.
 
 ## Code style
@@ -83,7 +83,14 @@ pnpm build
 
 Use browser `URL.createObjectURL` for local and fetched-original preview, and revoke object URLs when the selected document changes or the component unmounts. Never invent extraction, confidence, conflicts, or approval results; render only API data.
 
-Stage 11 uses the existing FastAPI review contract through `src/lib/api.ts`: upload, process, review history/detail/original, GL selection, approval, rejection, correction request/draft, and deletion. Preserve the API's server-controlled approval gate and its no-send correction-draft behavior.
+The current React review surface uses the existing FastAPI contract through `src/lib/api.ts`: upload, process, review history/detail/original, GL selection, approval, rejection, correction request/draft, and deletion. Preserve the API's server-controlled approval gate and its no-send correction-draft behavior.
+
+## Processing feedback
+
+- The processing request is synchronous. Start the client-side estimated stage feedback as soon as the process request begins, disable process and review actions while it runs, and reset transient progress after success or failure.
+- Keep the stage list aligned with the existing service order: read the document, classify it, extract fields, check policy, and prepare the accounting review.
+- Label stage feedback as estimated UI guidance. The API contract has no provider callbacks, percentage completion, or background worker progress to display.
+- Keep failed processing recoverable and show the server's failure message with a retry action.
 
 As implementation is added, keep all documented frontend checks green:
 
@@ -95,6 +102,6 @@ pnpm build
 
 Complete verification includes a manual browser walkthrough of the full upload, processing, review, correction, decision, history, and deletion workflow.
 
-For the Stage 11 interface, also inspect the browser console: structured events must be present for API outcomes, validation, review actions, and clipboard copy results, while sensitive document data remains absent.
+For the current review interface, also inspect the browser console: structured events must be present for API outcomes, validation, review actions, and clipboard copy results, while sensitive document data remains absent.
 
 Do not add Vitest, Jest, Playwright, Cypress, `*.test.*`, or another automated frontend test setup. This weekly teaching project uses strict typing, linting, production builds, and manual browser verification as defined by the root instructions.

@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from time import perf_counter
 from typing import Any, Literal, cast
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from openai import OpenAI, OpenAIError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -47,6 +49,10 @@ class QwenProviderError(RuntimeError):
     """Raised when the local Qwen adapter cannot return a valid result."""
 
 
+class _OllamaRequestError(RuntimeError):
+    """Raised when the native Ollama endpoint cannot return a response."""
+
+
 class _ClassificationPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -70,7 +76,11 @@ class _InvoiceReviewPayload(BaseModel):
     @field_validator("field_confidence")
     @classmethod
     def validate_field_confidence(cls, value: dict[str, str]) -> dict[str, str]:
-        return {name: _confidence_string(confidence) for name, confidence in value.items()}
+        return {
+            name: _confidence_string(confidence)
+            for name, confidence in value.items()
+            if confidence.strip()
+        }
 
 
 class _ReceiptReviewPayload(BaseModel):
@@ -83,7 +93,11 @@ class _ReceiptReviewPayload(BaseModel):
     @field_validator("field_confidence")
     @classmethod
     def validate_field_confidence(cls, value: dict[str, str]) -> dict[str, str]:
-        return {name: _confidence_string(confidence) for name, confidence in value.items()}
+        return {
+            name: _confidence_string(confidence)
+            for name, confidence in value.items()
+            if confidence.strip()
+        }
 
 
 class _GLSuggestionPayload(BaseModel):
@@ -169,10 +183,11 @@ class _PreparedMedia:
 
 
 class QwenVLMProvider:
-    """Provider boundary for the local Qwen model through an OpenAI-compatible API."""
+    """Provider boundary for the local Qwen model."""
 
     def __init__(self, settings: Settings, *, client: Any | None = None) -> None:
         self._settings = settings
+        self._native_ollama = client is None and settings.local_vlm_runtime == "ollama"
         self._client = client or OpenAI(
             api_key=settings.local_vlm_api_key or "local-vlm",
             base_url=str(settings.local_vlm_base_url),
@@ -387,16 +402,23 @@ class QwenVLMProvider:
         for attempt in range(attempts):
             request_content = self._retry_content(user_content, attempt)
             try:
-                response = self._client.chat.completions.create(
-                    model=self._settings.local_vlm_model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": request_content},
-                    ],
-                    response_format=response_format,
-                    temperature=0,
-                )
-                content = response.choices[0].message.content
+                if self._native_ollama:
+                    content = self._request_ollama(
+                        response_schema=response_model.model_json_schema(),
+                        system_prompt=system_prompt,
+                        user_content=request_content,
+                    )
+                else:
+                    response = self._client.chat.completions.create(
+                        model=self._settings.local_vlm_model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": request_content},
+                        ],
+                        response_format=response_format,
+                        temperature=0,
+                    )
+                    content = response.choices[0].message.content
                 if not isinstance(content, str) or not content.strip():
                     raise ValueError("Qwen returned an empty structured response.")
                 raw_payload = json.loads(content)
@@ -423,16 +445,68 @@ class QwenVLMProvider:
                 TypeError,
                 ValidationError,
                 ValueError,
+                _OllamaRequestError,
             ) as error:
                 last_error = error
 
-        if isinstance(last_error, OpenAIError):
+        if isinstance(last_error, (OpenAIError, _OllamaRequestError)):
             raise QwenProviderError(
                 f"Qwen endpoint failed after {attempts} attempts; check the local runtime."
             ) from last_error
         raise QwenProviderError(
             f"Qwen returned invalid structured output after {attempts} attempts."
         ) from last_error
+
+    def _request_ollama(
+        self,
+        *,
+        response_schema: dict[str, Any],
+        system_prompt: str,
+        user_content: str | list[dict[str, Any]],
+    ) -> str:
+        request_body = {
+            "model": self._settings.local_vlm_model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                self._ollama_user_message(user_content),
+            ],
+            "format": response_schema,
+            "stream": False,
+            "think": False,
+            "options": {"temperature": 0},
+        }
+        request = Request(
+            self._ollama_chat_url(),
+            data=json.dumps(request_body).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=self._settings.local_vlm_timeout_seconds) as response:
+                payload = json.load(response)
+        except (HTTPError, URLError, TimeoutError, OSError, ValueError) as error:
+            raise _OllamaRequestError("Native Ollama request failed.") from error
+        message = payload.get("message") if isinstance(payload, Mapping) else None
+        content = message.get("content") if isinstance(message, Mapping) else None
+        if not isinstance(content, str):
+            raise _OllamaRequestError("Native Ollama response had no message content.")
+        return content
+
+    @staticmethod
+    def _ollama_user_message(user_content: str | list[dict[str, Any]]) -> dict[str, Any]:
+        if isinstance(user_content, str):
+            return {"role": "user", "content": user_content}
+        text_parts = [part["text"] for part in user_content if part.get("type") == "text"]
+        images = [
+            part["image_url"]["url"].split(",", maxsplit=1)[1]
+            for part in user_content
+            if part.get("type") == "image_url"
+        ]
+        return {"role": "user", "content": "\n".join(text_parts), "images": images}
+
+    def _ollama_chat_url(self) -> str:
+        base_url = str(self._settings.local_vlm_base_url).rstrip("/")
+        return f"{base_url.removesuffix('/v1')}/api/chat"
 
     @staticmethod
     def _retry_content(
@@ -516,7 +590,8 @@ class QwenVLMProvider:
             f"Extract only the requested {fields} from the supplied original document. "
             f"The document_type must be exactly {document_type.value}. Preserve missing values as "
             "null. Use ISO dates, uppercase three-letter currency codes, and decimal strings for "
-            "money and confidence values. Return only the requested JSON schema."
+            "money and confidence values. Include field_confidence for every non-null field; "
+            "never use an empty confidence string. Return only the requested JSON schema."
         )
 
     @staticmethod
@@ -525,7 +600,7 @@ class QwenVLMProvider:
             return (
                 "Return vendor/customer identity and VAT IDs, invoice number and dates, purchase "
                 "order, currency, subtotal, total tax, and invoice total. Include confidence for "
-                "every non-null field using decimal strings."
+                "every non-null field using decimal strings, including both party names."
             )
         return (
             "Return merchant, transaction date, expense category, currency, subtotal, VAT total, "

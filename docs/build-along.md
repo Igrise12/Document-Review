@@ -223,7 +223,7 @@ Checkpoint: the primary parser has a real CPU smoke path and the frontend can sh
 
 ## Stage 5 checkpoint — local Qwen VLM adapters
 
-Stage 5 adds `backend/app/providers/qwen.py` as the only boundary for the local Qwen model. It uses the existing OpenAI-compatible dependency and supports both the default Ollama endpoint and vLLM through the settings already defined in `backend/app/config.py`. The adapter accepts the original upload, renders every PDF page to an image inside the provider boundary, and never sends only the primary parser's extracted values to the independent review path.
+Stage 5 adds `backend/app/providers/qwen.py` as the only boundary for the local Qwen model. It uses Ollama's native `/api/chat` contract for local runs (including `think: false` for thinking-capable models) and the existing OpenAI-compatible dependency for vLLM through the settings already defined in `backend/app/config.py`. The adapter accepts the original upload, renders every PDF page to an image inside the provider boundary, and never sends only the primary parser's extracted values to the independent review path.
 
 The provider exposes four focused operations: structured invoice/receipt classification, document review with typed invoice/receipt fields and per-field confidence, GL suggestion from normalized fields plus a supplied catalog, and on-demand correction-draft generation. Each response uses a strict JSON Schema, is validated by Pydantic, records model/runtime/prompt/schema metadata, and retries invalid structured output only within the configured bound. Invalid GL account IDs are discarded rather than becoming business policy. The correction operation returns text only and has no email-sending capability.
 
@@ -539,7 +539,7 @@ VIES lookup or background worker.
 Checkpoint: the frontend now consumes the complete Stage 10 API contract with
 accessible local review controls and console-only, redacted frontend logging.
 
-## Stage 12 checkpoint — processing progress feedback
+## Processing progress feedback checkpoint
 
 Completed on 2026-09-11. The synchronous processing action now shows a spinner,
 the current expected pipeline stage, completed and upcoming stages, and a clear
@@ -567,3 +567,54 @@ keeps the process action disabled until the API returns.
 
 Checkpoint: a user can see that processing is active and understand the local
 review stages while waiting for the synchronous response.
+
+## Stage 12 checkpoint — local fictional corpus evaluation
+
+The local corpus evaluator is now implemented at
+`playground/evaluate_corpus.py`. It uses the same synchronous service boundary
+as the FastAPI application, processes the manifest in order so the duplicate
+scenario is meaningful, stores runtime data only in a temporary directory, and
+continues to the next sample after a provider failure.
+
+The evaluator compares normalized Pydantic field values instead of raw OCR
+text. It reports classification and confidence, page counts, issue codes,
+blocking and warning outcomes, primary/VLM provenance, GL catalog validity,
+logical provider calls, provider metadata, duration, machine details, and peak
+RSS. Its strict exit gate requires every selected sample to match the manifest
+and finish in `ready_for_review`; `--only FILENAME` supports representative
+hybrid runs without a second evaluator.
+
+Run the manifest check and evaluator with the locked backend environment:
+
+```bash
+cd backend
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/check_document_types.py
+LOCAL_VLM_BASE_URL=http://localhost:7869/v1 \
+LOCAL_VLM_MODEL=qwen3.5:9b \
+PYTHONPATH=. UV_CACHE_DIR=/tmp/invoice-review-uv-cache \
+  uv run --locked --no-sync python ../playground/evaluate_corpus.py
+```
+
+The evaluator must run in the same host/network context as the local Qwen
+endpoint. A restricted Codex sandbox has a separate `localhost`, while a host
+context can reach a Podman service bound to `localhost:7869`; verify the route
+with `curl http://localhost:7869/v1/models` before starting the corpus run.
+The completed host-context acceptance run used `qwen3.5:9b` through Ollama and
+passed all 13 documents and 14 pages. It reported `151/151` normalized fields,
+the duplicate scenario on `10-de-duplicate.pdf`, valid Northstar GL IDs, and
+one logical call for each provider operation per document. The run took about
+10 minutes on CPU; this duration is recorded by the evaluator and is not
+represented as backend progress.
+
+The deterministic primary adapter now renders PDFs at higher resolution before
+PaddleOCR, associates amount labels by layout row when OCR order is unstable,
+chooses the strongest repeated multi-page party header, handles inline
+party/VAT labels, and avoids table headers being mistaken for purchase orders.
+The Ollama adapter uses native structured output with thinking disabled, while
+the vLLM OpenAI-compatible path remains available. The model comparison and
+license audit remain open until an explicit candidate/configuration review is
+recorded.
+
+Checkpoint: Stage 12 corpus evaluation is complete; the evaluator is the
+repeatable strict gate for future provider/configuration comparisons.
