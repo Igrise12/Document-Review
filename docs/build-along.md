@@ -618,3 +618,20 @@ recorded.
 
 Checkpoint: Stage 12 corpus evaluation is complete; the evaluator is the
 repeatable strict gate for future provider/configuration comparisons.
+
+## Documentation checkpoint — LinkedIn project post
+
+The project overview is now captured in `docs/linkedin-post.md` as a
+copy-ready English LinkedIn post. It explains the user problem, the guided
+review workflow, the separation between AI extraction and deterministic finance
+policy, and the local technology stack. The wording keeps the project honest:
+the company and documents are fictional, VIES is not queried live, and
+correction drafts are never sent by the application.
+
+No runtime code or dependency changed. Review the Markdown file directly or
+copy its content into LinkedIn and adjust the hashtags or personal wording if
+needed.
+
+Checkpoint: a professional, humanized public description of the completed
+project and its technical decisions is available at
+`docs/linkedin-post.md`.

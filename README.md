@@ -1,41 +1,68 @@
 # Invoice Review
 
-This is the clean starter for an end-to-end invoice and receipt review application. You will build a workflow for Northstar Facilities B.V. that combines local PaddleOCR and Qwen document review, deterministic finance rules, SQLite persistence, and a human review interface.
+Invoice Review is a local, end-to-end workspace for reviewing invoices and
+expense receipts. It is built around a fictional facilities company,
+Northstar Facilities B.V., and combines document parsing, independent model
+review, deterministic finance rules, and a human approval step.
 
-> You are on `main`, the learner starter. Active work is visible on `development`; the reviewed finished application is on `solution`.
+The project is also a guided build-along:
 
-Tutorial: <https://learn.datalumina.com/docs/invoice-review>
+- [Online tutorial](https://learn.datalumina.com/docs/invoice-review)
+- [Client brief](docs/client-brief.md)
+- [Target architecture](docs/architecture.md)
+- [Build-along checkpoints](docs/build-along.md)
 
-## What is included
+> Northstar and all sample documents are fictional. The app does not query
+> VIES, send email, or call a metered cloud OCR/VLM API.
 
-- The client brief and target architecture
-- A fictional 13-document multilingual corpus
-- Safe environment templates
-- Exact dependency pins and lockfiles
-- Minimal FastAPI service, a Stage 4 PaddleOCR adapter, and a React checkpoint harness
-- An install-free development supervisor and readiness check
+## What the application does
 
-The upload/process API and completed review workflow are intentionally absent. The tutorial builds the remaining workflow from this verified parser checkpoint.
+1. Upload one PDF, PNG, or JPEG document up to 4 MB.
+2. Classify it as an invoice or receipt.
+3. Parse the original document with PaddleOCR PP-StructureV3.
+4. Review the same original file independently with a local Qwen VLM.
+5. Merge the results while preserving primary-parser values, filling only
+   missing fields from the VLM, and exposing provenance and conflicts.
+6. Apply deterministic VAT, total, date, duplicate, and document-specific
+   policy checks.
+7. Suggest an account from the fixed Northstar GL catalog and let a reviewer
+   override it.
+8. Approve, reject, or request a supplier correction from the review screen.
+9. Generate a copyable correction-email draft on demand; the app never sends
+   it.
 
-## Prerequisites
+Review history, original-file preview, explicit deletion, and re-upload are
+included so the same fictional document can be demonstrated repeatedly.
+
+## Technology and boundaries
+
+- **Frontend:** Vite, React, TypeScript, and Tailwind CSS
+- **Backend:** Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy, and SQLite
+- **Primary parser:** PaddleOCR PP-StructureV3; PaddleOCR-VL is an optional
+  path for difficult multilingual layouts
+- **Independent reviewer:** Qwen2.5-VL-7B-Instruct, or a newer Qwen-VL model
+  after it passes the fictional corpus evaluation
+- **Local runtimes:** Ollama for development or vLLM for GPU-backed serving
+- **Storage:** SQLite plus local files under `~/.invoice-review` by default
+
+Provider-specific types stay inside `backend/app/providers/`. The rest of the
+application works with normalized document models, evidence, and metadata.
+Finance rules live in a pure policy module, while HTTP, orchestration, and
+SQLite access remain in their own layers.
+
+## Requirements
 
 - Python 3.12 or newer
-- uv
+- [uv](https://docs.astral.sh/uv/)
 - Node.js 22 or newer
 - pnpm 11
-
-## Local provider direction
-
-- PaddleOCR PP-StructureV3 is the primary parser for OCR, layout, tables, boxes, and confidence.
-- Qwen2.5-VL-7B-Instruct is the independent reviewer and generator.
-- Ollama is the local development runtime; vLLM is the optional GPU-backed runtime.
-- Model weights and caches belong outside this repository, for example Ollama's configured model directory or PaddleX's external model cache.
-- CPU works for a smoke test but is slow; an NVIDIA GPU with matching PaddlePaddle and vLLM/Ollama support is recommended for repeated corpus runs.
-- Local execution has no per-document API charge; it uses machine compute, storage, electricity, and model download time instead.
-
-The approved CPU pins are `paddleocr[doc-parser]==3.7.0` and `paddlepaddle==3.2.0`; they are installed from the locked backend environment. GPU remains an alternative after a compatible NVIDIA driver/CUDA host and matching PaddlePaddle GPU wheel are available.
+- A local Qwen-compatible endpoint for processing documents
+- CPU works for a smoke test; a compatible NVIDIA GPU is recommended for
+  repeated corpus evaluations
 
 ## Install
+
+From the repository root:
 
 ```bash
 cd backend
@@ -45,36 +72,43 @@ cd ../frontend
 pnpm install --frozen-lockfile
 ```
 
-Copy `backend/.env.example` to `backend/.env` for later provider configuration, and copy `frontend/.env.example` to `frontend/.env` for local frontend configuration. The health/checkpoint UI does not call PaddleOCR or Qwen and does not require provider credentials.
-
-## Run and verify the local checkpoint
+Create local environment files when you want to customize the defaults:
 
 ```bash
-cd backend
-uv sync --locked
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
 
-cd ../frontend
-pnpm install --frozen-lockfile
+The default provider settings use Ollama at
+`http://localhost:11434/v1` with `qwen2.5vl:7b` and run PaddleOCR on the CPU.
+Use the environment examples as the starting point for an Ollama or vLLM
+setup. Keep model weights, provider caches, uploaded documents, and SQLite
+runtime data outside Git.
 
-cd ..
+## Run locally
+
+The supervisor checks the existing locked environments and starts both
+services:
+
+```bash
 ./scripts/dev.sh --check
 ./scripts/dev.sh
 ```
 
-Open <http://localhost:5173>. The checkpoint UI checks the API health endpoint at <http://localhost:8000/health>, previews one local document, and clearly leaves processing for the next stage.
+Then open [http://localhost:5173](http://localhost:5173). The API is available
+at [http://localhost:8000/health](http://localhost:8000/health).
 
-Run the real primary-parser smoke check:
+The UI and health check do not initialize PaddleOCR or Qwen. Uploading a file
+works without a running model, but processing requires the local parser setup
+and a reachable Qwen endpoint.
+
+## Verify
+
+Run the static checks with the locked environments:
 
 ```bash
 cd backend
-PYTHONPATH=. uv run --locked --no-sync python ../playground/check_paddleocr.py
-```
-
-For static verification:
-
-```bash
-cd backend
-uv run --locked --no-sync ruff check app
+uv run --locked --no-sync ruff check app ../playground
 
 cd ../frontend
 pnpm exec tsc -b --pretty false
@@ -82,16 +116,43 @@ pnpm lint
 pnpm build
 ```
 
-## Choose a branch
-
-- `main`: clone this branch to follow the tutorial from the prepared starting point.
-- `development`: inspect the public working branch and later experiments.
-- `solution`: inspect the reviewed end product.
-
-To switch to the finished application:
+Validate the fictional manifest before a provider run:
 
 ```bash
-git switch solution
+cd backend
+PYTHONPATH=. uv run --locked --no-sync python ../playground/check_document_types.py
 ```
 
-Start with [the client brief](docs/client-brief.md), then follow the [complete tutorial](https://learn.datalumina.com/docs/invoice-review).
+To evaluate the complete local pipeline, start the configured Qwen endpoint
+and run the corpus evaluator from the same host/network context:
+
+```bash
+cd backend
+PYTHONPATH=. uv run --locked --no-sync python ../playground/evaluate_corpus.py
+```
+
+Use `--only FILENAME` for a representative subset. The evaluator stores
+runtime data in a temporary directory and exits non-zero when the strict
+manifest expectations are not met. See [samples/README.md](samples/README.md)
+for the full corpus workflow and endpoint notes.
+
+## Fictional corpus
+
+The corpus contains 13 documents across English, Dutch, German, and French:
+12 invoices and one imperfect Dutch fuel receipt. The manifest records the
+expected document type, normalized fields, issue codes, and page counts.
+
+Sample documents are test data only. Their VAT values are fictional checksum
+examples, not live business registrations.
+
+## Branches
+
+- `main` is the prepared starter for following the tutorial.
+- `development` contains the public working implementation.
+- `solution` is the reviewed reference branch when available.
+
+## Further reading
+
+- [Open-source provider alternatives](docs/open-source-alternatives.md)
+- [Local pricing and resource costs](docs/pricing.md)
+- [Sample corpus guide](samples/README.md)
